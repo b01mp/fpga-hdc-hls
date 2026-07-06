@@ -25,12 +25,14 @@ int main() {
     // ---- quantize<feat=float, idx=int, L=8> over [0,10] -------------------
     {
         const int L = 8;
-        CHECK(hdc::quantize<float,int,L>(0.0f, 0.0f, 10.0f) == 0,      "quantize min -> 0");
-        CHECK(hdc::quantize<float,int,L>(10.0f, 0.0f, 10.0f) == L-1,   "quantize max -> L-1");
-        CHECK(hdc::quantize<float,int,L>(-5.0f, 0.0f, 10.0f) == 0,     "quantize below-range clamps");
-        CHECK(hdc::quantize<float,int,L>(99.0f, 0.0f, 10.0f) == L-1,   "quantize above-range clamps");
+        // NOTE: parenthesize conditions holding template<...> commas so the
+        // preprocessor does not split them as extra CHECK() macro arguments.
+        CHECK((hdc::quantize<float,int,L>(0.0f, 0.0f, 10.0f) == 0),      "quantize min -> 0");
+        CHECK((hdc::quantize<float,int,L>(10.0f, 0.0f, 10.0f) == L-1),   "quantize max -> L-1");
+        CHECK((hdc::quantize<float,int,L>(-5.0f, 0.0f, 10.0f) == 0),     "quantize below-range clamps");
+        CHECK((hdc::quantize<float,int,L>(99.0f, 0.0f, 10.0f) == L-1),   "quantize above-range clamps");
         // value 5.0 in [0,10] -> norm 0.5 -> bucket floor(0.5*8)=4
-        CHECK(hdc::quantize<float,int,L>(5.0f, 0.0f, 10.0f) == 4,      "quantize midpoint -> 4");
+        CHECK((hdc::quantize<float,int,L>(5.0f, 0.0f, 10.0f) == 4),      "quantize midpoint -> 4");
         // monotonic non-decreasing across the range
         int prev = -1; bool mono = true;
         for (int s = 0; s <= 100; s++) {
