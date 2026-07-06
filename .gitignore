@@ -1,0 +1,24 @@
+# --- Vitis / Vitis HLS build artifacts ---
+proj_*/
+*_proj/
+*.log
+*.jou
+*.str
+.Xil/
+_ide/
+_x/
+vivado*.backup.*
+hls_config.cfg~
+
+# Vitis Unified IDE workspace metadata (keep vitis-comp.json if you adopt IDE components)
+.metadata/
+.analytics
+**/logs/
+**/.run/
+
+# --- OS / editor ---
+*.swp
+*~
+Thumbs.db
+.DS_Store
+.vscode/
