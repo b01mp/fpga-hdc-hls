@@ -10,11 +10,17 @@ _x/
 vivado*.backup.*
 hls_config.cfg~
 
-# Vitis Unified IDE workspace metadata (keep vitis-comp.json if you adopt IDE components)
+# Vitis Unified IDE workspace metadata
 .metadata/
 .analytics
 **/logs/
 **/.run/
+
+# Vitis Unified IDE GUI components (we use scripts/run_hls.tcl instead).
+# The GUI made an 'encoding/' component during setup; ignore it and its build junk.
+/encoding/
+**/.cache/
+**/compile_commands.json
 
 # --- OS / editor ---
 *.swp
