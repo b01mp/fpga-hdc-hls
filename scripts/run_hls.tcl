@@ -36,6 +36,8 @@ proc run_category {name top INC PART CLK} {
 run_category encoding    encoding_bind_top          $INC $PART $CLK
 run_category aggregation aggregation_threshold_top  $INC $PART $CLK
 run_category search      search_similarity_top      $INC $PART $CLK
+run_category generation  generation_random_hv_top   $INC $PART $CLK
+run_category memory      memory_gather_top          $INC $PART $CLK
 
 puts "All category C-sims dispatched. Check each proj_*/sol1/csim/report for PASS."
 exit

@@ -11,6 +11,7 @@
 #include <ap_int.h>
 #include "aggregation/bundle.hpp"
 #include "aggregation/threshold.hpp"
+#include "aggregation/cast.hpp"
 
 using hdc::binary_t;
 typedef ap_int<32> acc_t;
@@ -54,6 +55,44 @@ int main() {
     CHECK(out[2] == 0, "threshold tie -> SET_ZERO");
     hdc::threshold<acc_t, binary_t, D>(acc, out, 4, hdc::TIE_SET_ONE);
     CHECK(out[2] == 1, "threshold tie -> SET_ONE");
+
+    // ---- cast<int, float, D=4> : datatype conversion ---------------------
+    {
+        const int D = 4;
+        int in[D] = {1, 0, 1, 0};
+        float out[D];
+        hdc::cast<int, float, D>(in, out);
+        bool ok = true;
+        for (int i = 0; i < D; i++) if ((float)in[i] != out[i]) ok = false;
+        CHECK(ok, "cast converts int → float element-wise");
+    }
+
+    // ==== Novelty 1: datatype-parametric threshold (collapse op by family) ====
+
+    // ---- threshold<bipolar> : sign(acc) -> {-1,+1} --------------------
+    {
+        const int Db = 6;
+        acc_t bacc[Db] = {5, -3, 0, 12, -1, 2};        // signed bundled sums
+        hdc::bipolar_t bout[Db];
+        hdc::threshold<acc_t, hdc::bipolar_t, Db, hdc::bipolar_tag>(bacc, bout, 0);
+        // sign: >0 -> +1, <0 -> -1, ==0 -> tie (default SET_ZERO => -1 for bipolar)
+        int exp[Db] = {1, -1, -1, 1, -1, 1};
+        bool ok = true;
+        for (int i = 0; i < Db; i++) if (bout[i] != (hdc::bipolar_t)exp[i]) ok = false;
+        CHECK(ok, "threshold<bipolar> == sign(acc)");
+    }
+
+    // ---- threshold<integer> : passthrough (keep accumulated value) ----
+    {
+        const int Di = 4;
+        acc_t iacc[Di] = {7, -2, 100, 0};
+        typedef ap_int<16> i16;
+        i16 iout[Di];
+        hdc::threshold<acc_t, i16, Di, hdc::integer_tag>(iacc, iout, 0);
+        bool ok = true;
+        for (int i = 0; i < Di; i++) if (iout[i] != (i16)iacc[i]) ok = false;
+        CHECK(ok, "threshold<integer> keeps accumulated value (no binarize)");
+    }
 
     std::printf(failures ? "== tb_aggregation: %d FAILURE(S) ==\n" : "== tb_aggregation: ALL PASS ==\n", failures);
     return failures ? 1 : 0;

@@ -6,12 +6,12 @@
  *   App (exposed):  prototype datatype, accumulator datatype, threshold_tie, hv_dim (D)
  *   Arch (deferred): dimension_parallelism, pipeline_mode
  *
- * Element is 1 iff it was set in more than half of the `count` bundled HVs.
- * Exact ties (2*acc == count) resolved by the tie policy. Comparison uses
- * 2*acc vs count to avoid a fractional threshold. Ported from emg_hdc; accumulator
- * and output datatypes are now template arguments.
+ * Datatype-parametric (Novelty 1): the collapse op is selected at COMPILE time by
+ * a family tag -- majority vote (binary), sign (bipolar), or passthrough/keep-value
+ * (fixed/integer/pow2, which are NOT binarized: the bundled prototype stays multi-
+ * valued). `count`/`tie` are only used by the binary/bipolar paths.
  *
- * STATUS: implemented + C-sim tested (tb/tb_aggregation.cpp).
+ * STATUS: datatype-parametric (binary/bipolar/fixed/integer/pow2) + C-sim tested.
  */
 #ifndef HDC_THRESHOLD_HPP
 #define HDC_THRESHOLD_HPP
@@ -20,18 +20,40 @@
 
 namespace hdc {
 
-// acc_t = accumulator datatype, elem_t = prototype/output datatype, D = hv_dim.
-template <typename acc_t, typename elem_t, int D>
+// --- Per-family collapse op (accumulator element -> prototype element) ---
+//   binary : majority vote  (set iff element was 1 in > half of `count` HVs)
+//   bipolar: sign           (+1 if acc>0, -1 if acc<0, tie by policy)
+//   fixed/integer/pow2      : passthrough -- keep the accumulated value (a cast
+//                             to elem_t); the prototype stays multi-valued.
+template <typename acc_t, typename elem_t>
+inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, binary_tag) {
+    acc_t twice_half = (acc_t)count;               // compare 2*acc vs count
+    acc_t two_acc    = acc << 1;
+    if (two_acc > twice_half) return (elem_t)1;
+    if (two_acc < twice_half) return (elem_t)0;
+    return (elem_t)(tie == TIE_SET_ONE ? 1 : 0);
+}
+template <typename acc_t, typename elem_t>
+inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, bipolar_tag) {
+    if (acc > 0) return (elem_t)1;
+    if (acc < 0) return (elem_t)-1;
+    return (elem_t)(tie == TIE_SET_ONE ? 1 : -1);
+}
+template <typename acc_t, typename elem_t>
+inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, fixed_tag)   { return (elem_t)acc; }
+template <typename acc_t, typename elem_t>
+inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, integer_tag) { return (elem_t)acc; }
+template <typename acc_t, typename elem_t>
+inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, pow2_tag)    { return (elem_t)acc; }
+
+// acc_t = accumulator datatype, elem_t = prototype/output datatype, D = hv_dim,
+// Family = datatype-family tag (default binary_tag => majority; callers unchanged).
+template <typename acc_t, typename elem_t, int D, typename Family = binary_tag>
 void threshold(const acc_t acc[D], elem_t out[D], int count,
                tie_policy_t tie = TIE_SET_ZERO) {
-    const acc_t twice_half = (acc_t)count;         // threshold on 2*acc
 THRESH_LOOP:
-    for (int i = 0; i < D; i++) {
-        acc_t two_acc = acc[i] << 1;               // 2 * acc[i]
-        if (two_acc > twice_half)      out[i] = (elem_t)1;
-        else if (two_acc < twice_half) out[i] = (elem_t)0;
-        else                           out[i] = (elem_t)(tie == TIE_SET_ONE ? 1 : 0);
-    }
+    for (int i = 0; i < D; i++)
+        out[i] = thresh_op<acc_t, elem_t>(acc[i], count, tie, Family());
 }
 
 } // namespace hdc

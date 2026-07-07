@@ -43,6 +43,37 @@ int main() {
     int r0 = hdc::similarity_search<binary_t, sim_t, D, K>(q0, proto);
     CHECK(r0 == 0, "all-zeros -> class 0");
 
+    // ==== Novelty 1: datatype-parametric similarity (metric + direction by family) ====
+
+    // ---- similarity_search<bipolar> : dot product, argmax --------------
+    {
+        const int Db = 8;
+        const int Kb = 3;
+        hdc::bipolar_t bproto[Kb][Db] = {
+            {-1,-1,-1,-1,-1,-1,-1,-1},   // class 0
+            { 1, 1, 1, 1,-1,-1,-1,-1},   // class 1
+            { 1, 1, 1, 1, 1, 1, 1, 1},   // class 2
+        };
+        hdc::bipolar_t bq[Db] = {1,1,1,1,-1,-1,-1,-1};       // == class 1
+        sim_t score = 0;
+        int rb = hdc::similarity_search<hdc::bipolar_t, sim_t, Db, Kb, hdc::bipolar_tag>(
+                     bq, bproto, hdc::SIM_DOT, hdc::SEARCH_ARGMAX, &score);
+        CHECK(rb == 1, "similarity<bipolar> dot/argmax -> class 1");
+        CHECK(score == 8, "similarity<bipolar> exact match dot == D");
+    }
+
+    // ---- similarity_search<fixed> : dot product, argmax ----------------
+    {
+        const int Df = 4;
+        const int Kf = 2;
+        typedef ap_fixed<16,8> fx;
+        fx fproto[Kf][Df] = { {1.0,1.0,0.0,0.0}, {0.0,0.0,1.0,1.0} };
+        fx fq[Df] = {0.0, 0.0, 1.0, 1.0};                    // == class 1
+        int rf = hdc::similarity_search<fx, fx, Df, Kf, hdc::fixed_tag>(
+                     fq, fproto, hdc::SIM_DOT, hdc::SEARCH_ARGMAX);
+        CHECK(rf == 1, "similarity<fixed> dot/argmax -> class 1");
+    }
+
     std::printf(failures ? "== tb_search: %d FAILURE(S) ==\n" : "== tb_search: ALL PASS ==\n", failures);
     return failures ? 1 : 0;
 }

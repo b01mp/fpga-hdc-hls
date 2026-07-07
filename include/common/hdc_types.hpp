@@ -29,8 +29,22 @@
 namespace hdc {
 
 // ---- Convenience element aliases (callers may also pass any ap_* type) ------
-typedef ap_uint<1> binary_t;     // element_bits = 1  (binary HV element)
-// bipolar / fixed-point elements are just e.g. ap_int<2>, ap_int<8>, ap_fixed<..>
+typedef ap_uint<1> binary_t;     // element_bits = 1  (binary HV element, {0,1})
+typedef ap_int<2>  bipolar_t;    // bipolar element {-1, +1}
+// fixed-point / integer / power-of-two elements are e.g. ap_fixed<..>, ap_int<W>,
+// or an ap_uint holding an exponent k for value 2^k. Callers pick the width.
+
+// ---- Datatype-family tags: compile-time op selection via tag dispatch --------
+//   Each datatype-parametric primitive (bind, threshold, similarity_search)
+//   overloads a small op-helper on one of these tags. Instantiating a primitive
+//   with a tag selects that op at COMPILE time (no runtime branch / mux) -- this
+//   is the "datatype-parametric" novelty: bind<...,binary_tag> is an XOR gate,
+//   bind<...,bipolar_tag> is a multiply, etc. (CGR intentionally excluded.)
+struct binary_tag  {};   // {0,1}           bind=XOR,  threshold=majority, sim=Hamming
+struct bipolar_tag {};   // {-1,+1}         bind=mul,  threshold=sign,     sim=dot
+struct fixed_tag   {};   // ap_fixed reals  bind=mul,  threshold=passthru, sim=dot
+struct pow2_tag    {};   // 2^k (exponent)  bind=add,  threshold=passthru, sim=dot
+struct integer_tag {};   // ap_int<W>       bind=mul,  threshold=passthru, sim=dot
 
 // ---- Mode application-parameters (passed as function arguments) -------------
 
