@@ -61,6 +61,49 @@ is all the DSE needs.
 
 ---
 
+## Result 3 — The datatype knob (Novelty 1, made physical)
+
+Same primitive, three datatype families, **everything else held constant** (D=256,
+DP=8, CP=2 for search). The only variable is the datatype, so every difference is
+the datatype's doing. Raw reports in `datatype/`.
+
+**bind** — the bind op changes (XOR → multiply):
+
+| datatype | op | LUT | DSP |
+|---|---|---|---|
+| binary | XOR | 82 | **0** |
+| bipolar | ±1 multiply | 130 | **0** |
+| fixed | real multiply | 114 | **8** |
+
+**threshold** — the collapse op changes (majority → sign → passthrough):
+
+| datatype | op | LUT | DSP |
+|---|---|---|---|
+| binary | majority | 378 | 0 |
+| bipolar | sign | 394 | 0 |
+| fixed | passthrough | **45** | 0 |
+
+**similarity_search** — the metric changes (Hamming → dot-product):
+
+| datatype | metric | LUT | FF | DSP |
+|---|---|---|---|---|
+| binary | Hamming | 1376 | 237 | **0** |
+| bipolar | dot | 1415 | 527 | **12** |
+| fixed | dot | 1622 | 1013 | **24** |
+
+**Talking points:**
+- **Same code, different silicon:** flip `bind` binary → fixed and 8 DSPs appear
+  (one per parallel lane) — the XOR literally became a multiplier, chosen at compile
+  time. That is Novelty 1 you can point at.
+- **The knob cuts both ways:** for `threshold`, fixed-point is the *cheapest*
+  (45 LUTs, passthrough) vs binary's 378 (majority comparators). Datatype
+  specialization can *save* resources, not just spend them — not obvious.
+- **Precision compounds in search:** fixed `similarity` costs both DSPs (24 vs 0)
+  and 4× the flip-flops (1013 vs 237, wider accumulators).
+- **Bipolar is a sweet spot:** multiply semantics at ~LUT cost (`bind` stays 0 DSP).
+
+---
+
 ## Honest caveats (worth stating up front)
 
 - These are **per-primitive**, `D = 256`, **binary** only — a representative slice,

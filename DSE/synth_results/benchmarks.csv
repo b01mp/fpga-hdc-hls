@@ -7,3 +7,12 @@ dp8,bind,encoding_bind_top,256,,8,1,binary,xc7z020,10,35,0.35,82,20,0,0,0
 dp8,threshold,aggregation_threshold_top,256,,8,1,binary,xc7z020,10,35,0.35,378,52,0,0,0
 dp8,gather,memory_gather_top,256,,8,1,binary,xc7z020,10,34,0.34,45,18,0,0,0
 dp8,similarity,search_similarity_top,256,10,8,2,binary,xc7z020,10,341,3.41,1376,237,0,0,0
+datatype,bind,bind_binary_top,256,,8,1,binary,xc7z020,10,35,0.35,82,20,0,0,0
+datatype,bind,bind_bipolar_top,256,,8,1,bipolar,xc7z020,10,35,0.35,130,20,0,0,0
+datatype,bind,bind_fixed_top,256,,8,1,fixed,xc7z020,10,35,0.35,114,20,8,0,0
+datatype,threshold,threshold_binary_top,256,,8,1,binary,xc7z020,10,35,0.35,378,52,0,0,0
+datatype,threshold,threshold_bipolar_top,256,,8,1,bipolar,xc7z020,10,35,0.35,394,20,0,0,0
+datatype,threshold,threshold_fixed_top,256,,8,1,fixed,xc7z020,10,34,0.34,45,18,0,0,0
+datatype,similarity,sim_binary_top,256,10,8,2,binary,xc7z020,10,341,3.41,1376,237,0,0,0
+datatype,similarity,sim_bipolar_top,256,10,8,2,bipolar,xc7z020,10,368,3.68,1415,527,12,0,0
+datatype,similarity,sim_fixed_top,256,10,8,2,fixed,xc7z020,10,367,3.67,1622,1013,24,0,0
