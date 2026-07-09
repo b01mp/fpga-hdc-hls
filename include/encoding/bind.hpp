@@ -35,12 +35,24 @@ template <typename T> inline T bind_op(T a, T b, fixed_tag)   { return (T)(a * b
 template <typename T> inline T bind_op(T a, T b, integer_tag) { return (T)(a * b); }
 template <typename T> inline T bind_op(T a, T b, pow2_tag)    { return (T)(a + b); }
 
-// elem_t = element datatype, D = hv_dim, Family = datatype-family tag.
-// Family defaults to binary_tag, so existing bind<elem_t,D>(...) calls are unchanged.
-template <typename elem_t, int D, typename Family = binary_tag>
-void bind(const elem_t a[D], const elem_t b[D], elem_t out[D]) {
+// // elem_t = element datatype, D = hv_dim, Family = datatype-family tag.
+// // Family defaults to binary_tag, so existing bind<elem_t,D>(...) calls are unchanged.
+// template <typename elem_t, int D, typename Family = binary_tag>
+// void bind(const elem_t a[D], const elem_t b[D], elem_t out[D]) {
+// BIND_LOOP:
+//     for (int i = 0; i < D; i++) {
+//         out[i] = bind_op(a[i], b[i], Family());
+//     }
+// }
+template <typename elem_t, int D, typename Family = binary_tag, int DP = 1>
+void bind(const elem_t a[D], const elem_t b[D], elem_t out[D]){
+    #pragma HLS ARRAY_PARTITION variable=a   type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=b   type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=1
 BIND_LOOP:
-    for (int i = 0; i < D; i++) {
+    for(int i = 0; i < D; i++){
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL factor=DP
         out[i] = bind_op(a[i], b[i], Family());
     }
 }

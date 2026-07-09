@@ -41,28 +41,39 @@ inline bool sim_higher_better(integer_tag) { return true;  }
 inline bool sim_higher_better(pow2_tag)    { return true;  }
 
 // elem_t = element datatype, sim_t = score datatype, D = hv_dim, K = num_prototypes,
-// Family = datatype-family tag (default binary_tag => Hamming/argmin; callers unchanged).
-template <typename elem_t, typename sim_t, int D, int K, typename Family = binary_tag>
+// Family = datatype-family tag, DP = dimension_parallelism, CP = class_parallelism.
+template <typename elem_t, typename sim_t, int D, int K,
+          typename Family = binary_tag, int DP = 1, int CP = 1>
 int similarity_search(const elem_t query[D], const elem_t proto[K][D],
                       sim_metric_t metric = SIM_HAMMING,
                       search_mode_t mode  = SEARCH_ARGMAX,
                       sim_t *best_score_out = 0) {
+    #pragma HLS ARRAY_PARTITION variable=query type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=proto type=cyclic factor=CP dim=1
+    #pragma HLS ARRAY_PARTITION variable=proto type=cyclic factor=DP dim=2
     (void)metric; (void)mode;                      // family selects metric + direction
     const bool higher_better = sim_higher_better(Family());
 
     // Seed with class 0, then compare the rest (avoids +/-inf init across metrics).
     sim_t best_score = 0;
 SEED_DIM:
-    for (int i = 0; i < D; i++)
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         best_score += sim_elem<sim_t>(query[i], proto[0][i], Family());
+    }
     int best_idx = 0;
 
 SEARCH_CLASSES:
     for (int c = 1; c < K; c++) {
+        #pragma HLS UNROLL factor=CP
         sim_t score = 0;
     SEARCH_DIM:
-        for (int i = 0; i < D; i++)
+        for (int i = 0; i < D; i++) {
+            #pragma HLS PIPELINE II=1
+            #pragma HLS UNROLL   factor=DP
             score += sim_elem<sim_t>(query[i], proto[c][i], Family());
+        }
         bool better = higher_better ? (score > best_score) : (score < best_score);
         if (better) { best_score = score; best_idx = c; }
     }

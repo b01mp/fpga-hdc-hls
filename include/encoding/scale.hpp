@@ -18,10 +18,14 @@
 namespace hdc {
 
 // elem_t = element datatype, w_t = weight datatype, D = hv_dim.
-template <typename elem_t, typename w_t, int D>
+template <typename elem_t, typename w_t, int D, int DP = 1>
 void scale(const elem_t in[D], w_t w, elem_t out[D]) {
+    #pragma HLS ARRAY_PARTITION variable=in  type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=1
 SCALE_LOOP:
     for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         out[i] = (elem_t)(in[i] * w);
     }
 }

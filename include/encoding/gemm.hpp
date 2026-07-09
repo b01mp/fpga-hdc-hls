@@ -21,16 +21,24 @@
 namespace hdc {
 
 // in_t = input datatype, acc_t = accumulator datatype. C[M][N] = A[M][K] * B[K][N].
-template <typename in_t, typename acc_t, int M, int K, int N>
+template <typename in_t, typename acc_t, int M, int K, int N, int DP = 1, int FP = 1>
 void gemm(const in_t A[M][K], const in_t B[K][N], acc_t C[M][N]) {
+    #pragma HLS ARRAY_PARTITION variable=A type=cyclic factor=FP dim=2
+    #pragma HLS ARRAY_PARTITION variable=B type=cyclic factor=FP dim=1
+    #pragma HLS ARRAY_PARTITION variable=B type=cyclic factor=DP dim=2
+    #pragma HLS ARRAY_PARTITION variable=C type=cyclic factor=DP dim=2
 GEMM_ROW:
     for (int m = 0; m < M; m++)
     GEMM_COL:
         for (int n = 0; n < N; n++) {
+            #pragma HLS PIPELINE II=1
+            #pragma HLS UNROLL factor=DP
             acc_t sum = 0;
         GEMM_K:
-            for (int k = 0; k < K; k++)
+            for (int k = 0; k < K; k++) {
+                #pragma HLS UNROLL factor=FP
                 sum += (acc_t)A[m][k] * (acc_t)B[k][n];
+            }
             C[m][n] = sum;
         }
 }

@@ -20,15 +20,22 @@
 
 namespace hdc {
 
-// elem_t = element datatype, N = rows, D = hv_dim. Identity copy (placement seam).
-template <typename elem_t, int N, int D>
+// elem_t = element datatype, N = rows, D = hv_dim, DP = dimension_parallelism.
+// Identity on the data; its real effect is the banking directive below.
+// (memory_space / bind_storage is a declaration-level decision made in the top
+//  wrapper where the tensor actually lives -- added there, not here.)
+template <typename elem_t, int N, int D, int DP = 1>
 void place(const elem_t in[N][D], elem_t out[N][D]) {
-    // ARCH-SEAM: ARRAY_PARTITION / bind_storage(memory_space, banking_factor) here later.
+    #pragma HLS ARRAY_PARTITION variable=in  type=cyclic factor=DP dim=2
+    #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=2
 PLACE_ROW:
     for (int n = 0; n < N; n++)
     PLACE_COL:
-        for (int i = 0; i < D; i++)
+        for (int i = 0; i < D; i++) {
+            #pragma HLS PIPELINE II=1
+            #pragma HLS UNROLL   factor=DP
             out[n][i] = in[n][i];
+        }
 }
 
 } // namespace hdc

@@ -24,10 +24,14 @@
 namespace hdc {
 
 // elem_t = input element datatype, acc_t = accumulator datatype, D = hv_dim.
-template <typename elem_t, typename acc_t, int D>
+template <typename elem_t, typename acc_t, int D, int DP = 1>
 void bundle(const elem_t in[D], acc_t acc[D]) {
+    #pragma HLS ARRAY_PARTITION variable=in  type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=acc type=cyclic factor=DP dim=1
 BUNDLE_LOOP:
     for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         acc[i] += (acc_t)in[i];
     }
 }

@@ -22,17 +22,24 @@
 namespace hdc {
 
 // elem_t = element datatype, acc_t = accumulator datatype for the norm, D = hv_dim.
-template <typename elem_t, typename acc_t, int D>
+template <typename elem_t, typename acc_t, int D, int DP = 1>
 void normalize(const elem_t in[D], elem_t out[D]) {
+    #pragma HLS ARRAY_PARTITION variable=in  type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=1
     acc_t sumsq = 0;
 NORM_ACC:
-    for (int i = 0; i < D; i++) sumsq += (acc_t)in[i] * (acc_t)in[i];
-
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        sumsq += (acc_t)in[i] * (acc_t)in[i];          // reduction: pipelined, not DP-unrolled (needs a tree, later)
+    }
     double norm = std::sqrt((double)sumsq);
-    if (norm == 0.0) norm = 1.0;                   // avoid div-by-zero on all-zero HV
+    if (norm == 0.0) norm = 1.0;                        // avoid div-by-zero on all-zero HV
 NORM_SCALE:
-    for (int i = 0; i < D; i++)
-        out[i] = (elem_t)((double)in[i] / norm);   // REVIEW: precision for integer elem_t
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
+        out[i] = (elem_t)((double)in[i] / norm);
+    }
 }
 
 } // namespace hdc

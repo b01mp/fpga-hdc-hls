@@ -48,13 +48,19 @@ inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, pow2_tag)    { r
 
 // acc_t = accumulator datatype, elem_t = prototype/output datatype, D = hv_dim,
 // Family = datatype-family tag (default binary_tag => majority; callers unchanged).
-template <typename acc_t, typename elem_t, int D, typename Family = binary_tag>
+template <typename acc_t, typename elem_t, int D, typename Family = binary_tag, int DP = 1>
 void threshold(const acc_t acc[D], elem_t out[D], int count,
                tie_policy_t tie = TIE_SET_ZERO) {
+    #pragma HLS ARRAY_PARTITION variable=acc type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=1
 THRESH_LOOP:
-    for (int i = 0; i < D; i++)
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         out[i] = thresh_op<acc_t, elem_t>(acc[i], count, tie, Family());
+    }
 }
+
 
 } // namespace hdc
 

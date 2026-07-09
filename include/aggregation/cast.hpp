@@ -20,11 +20,16 @@
 namespace hdc {
 
 // in_t = source datatype, out_t = target datatype, D = hv_dim.
-template <typename in_t, typename out_t, int D>
+template <typename in_t, typename out_t, int D, int DP = 1>
 void cast(const in_t in[D], out_t out[D]) {
+    #pragma HLS ARRAY_PARTITION variable=in  type=cyclic factor=DP dim=1
+    #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=1
 CAST_LOOP:
-    for (int i = 0; i < D; i++)
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         out[i] = (out_t)in[i];
+    }
 }
 
 } // namespace hdc

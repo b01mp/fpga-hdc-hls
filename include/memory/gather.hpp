@@ -18,12 +18,18 @@
 
 namespace hdc {
 
-// elem_t = element datatype, N = codebook rows (address space), D = hv_dim.
-template <typename elem_t, int N, int D>
+// elem_t = element datatype, N = codebook rows (address space), D = hv_dim,
+// DP = dimension_parallelism (elements read per step; default 1 = sequential).
+template <typename elem_t, int N, int D, int DP = 1>
 void gather(const elem_t codebook[N][D], int index, elem_t out[D]) {
+    #pragma HLS ARRAY_PARTITION variable=codebook type=cyclic factor=DP dim=2
+    #pragma HLS ARRAY_PARTITION variable=out      type=cyclic factor=DP dim=1
 GATHER_LOOP:
-    for (int i = 0; i < D; i++)
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         out[i] = codebook[index][i];
+    }
 }
 
 } // namespace hdc
