@@ -9,11 +9,12 @@
 #include "common/hdc_types.hpp"
 #include "aggregation/threshold.hpp"
 
-#define AGG_D 256                 // hv_dim (representative)
-typedef ap_int<32> agg_acc_t;     // accumulator_bits = 32
+#define AGG_D  256
+#define AGG_DP 8
+typedef ap_int<32> agg_acc_t;
 
 void aggregation_threshold_top(const agg_acc_t acc[AGG_D],
                                hdc::binary_t out[AGG_D],
                                int count) {
-    hdc::threshold<agg_acc_t, hdc::binary_t, AGG_D>(acc, out, count);
+    hdc::threshold<agg_acc_t, hdc::binary_t, AGG_D, hdc::binary_tag, AGG_DP>(acc, out, count);
 }

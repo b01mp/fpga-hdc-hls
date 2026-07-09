@@ -1,0 +1,207 @@
+
+
+================================================================
+== Vitis HLS Report for 'similarity_search_Pipeline_SEARCH_DIM'
+================================================================
+* Date:           Wed Jul  8 23:26:49 2026
+
+* Version:        2026.1 (Build 6493734 on Jun 16 2026)
+* Project:        proj_synth_search
+* Solution:       sol1
+* Product family: zynq
+* Target device:  xc7z020-clg484-1
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+----------+----------+------------+
+    |  Clock |  Target  | Estimated| Uncertainty|
+    +--------+----------+----------+------------+
+    |ap_clk  |  10.00 ns|  4.999 ns|     2.70 ns|
+    +--------+----------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+-------------------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval |      Pipeline     |
+    |   min   |   max   |    min   |    max   | min | max |        Type       |
+    +---------+---------+----------+----------+-----+-----+-------------------+
+    |       35|       35|  0.350 us|  0.350 us|    0|    0|  loop pipeline stp|
+    +---------+---------+----------+----------+-----+-----+-------------------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +--------------+---------+---------+----------+-----------+-----------+------+----------+
+        |              |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |   Loop Name  |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +--------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- SEARCH_DIM  |       33|       33|         3|          1|          1|    32|       yes|
+        +--------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++-----------------+---------+-----+--------+-------+-----+
+|       Name      | BRAM_18K| DSP |   FF   |  LUT  | URAM|
++-----------------+---------+-----+--------+-------+-----+
+|DSP              |        -|    -|       -|      -|    -|
+|Expression       |        -|    -|       0|    121|    -|
+|FIFO             |        -|    -|       -|      -|    -|
+|Instance         |        -|    -|       -|      -|    -|
+|Memory           |        -|    -|       -|      -|    -|
+|Multiplexer      |        -|    -|       0|     45|    -|
+|Register         |        -|    -|      28|      -|    -|
++-----------------+---------+-----+--------+-------+-----+
+|Total            |        0|    0|      28|    166|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Available        |      280|  220|  106400|  53200|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Utilization (%)  |        0|    0|      ~0|     ~0|    0|
++-----------------+---------+-----+--------+-------+-----+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-----------------------+----------+----+---+----+------------+------------+
+    |     Variable Name     | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-----------------------+----------+----+---+----+------------+------------+
+    |add_ln72_fu_384_p2     |         +|   0|  0|  14|           9|           4|
+    |add_ln75_1_fu_485_p2   |         +|   0|  0|  10|           2|           2|
+    |add_ln75_2_fu_495_p2   |         +|   0|  0|  11|           3|           3|
+    |add_ln75_3_fu_505_p2   |         +|   0|  0|  10|           2|           2|
+    |add_ln75_4_fu_515_p2   |         +|   0|  0|  10|           2|           2|
+    |add_ln75_5_fu_525_p2   |         +|   0|  0|  11|           3|           3|
+    |add_ln75_6_fu_535_p2   |         +|   0|  0|  13|           4|           4|
+    |add_ln75_fu_475_p2     |         +|   0|  0|  10|           2|           2|
+    |score_2_fu_547_p2      |         +|   0|  0|  14|           9|           9|
+    |ap_enable_pp0          |       xor|   0|  0|   2|           1|           2|
+    |xor_ln30_10_fu_425_p2  |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_11_fu_435_p2  |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_12_fu_445_p2  |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_13_fu_455_p2  |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_14_fu_465_p2  |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_8_fu_405_p2   |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_9_fu_415_p2   |       xor|   0|  0|   2|           1|           1|
+    |xor_ln30_fu_395_p2     |       xor|   0|  0|   2|           1|           1|
+    +-----------------------+----------+----+---+----+------------+------------+
+    |Total                  |          |   0|  0| 121|          45|          41|
+    +-----------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------+----+-----------+-----+-----------+
+    |           Name          | LUT| Input Size| Bits| Total Bits|
+    +-------------------------+----+-----------+-----+-----------+
+    |ap_done_int              |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1  |   9|          2|    1|          2|
+    |ap_sig_allocacmp_i       |   9|          2|    9|         18|
+    |i_1_fu_86                |   9|          2|    9|         18|
+    |score_fu_82              |   9|          2|    9|         18|
+    +-------------------------+----+-----------+-----+-----------+
+    |Total                    |  45|         10|   29|         58|
+    +-------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------------------------+---+----+-----+-----------+
+    |               Name               | FF| LUT| Bits| Const Bits|
+    +----------------------------------+---+----+-----+-----------+
+    |add_ln75_6_reg_661                |  4|   0|    4|          0|
+    |ap_CS_fsm                         |  1|   0|    1|          0|
+    |ap_done_reg                       |  1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1           |  1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2           |  1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg  |  1|   0|    1|          0|
+    |i_1_fu_86                         |  9|   0|    9|          0|
+    |score_fu_82                       |  9|   0|    9|          0|
+    |tmp_1_reg_577                     |  1|   0|    1|          0|
+    +----------------------------------+---+----+-----+-----------+
+    |Total                             | 28|   0|   28|          0|
+    +----------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++--------------------+-----+-----+------------+---------------------------------------+--------------+
+|      RTL Ports     | Dir | Bits|  Protocol  |             Source Object             |    C Type    |
++--------------------+-----+-----+------------+---------------------------------------+--------------+
+|ap_clk              |   in|    1|  ap_ctrl_hs|  similarity_search_Pipeline_SEARCH_DIM|  return value|
+|ap_rst              |   in|    1|  ap_ctrl_hs|  similarity_search_Pipeline_SEARCH_DIM|  return value|
+|ap_start            |   in|    1|  ap_ctrl_hs|  similarity_search_Pipeline_SEARCH_DIM|  return value|
+|ap_done             |  out|    1|  ap_ctrl_hs|  similarity_search_Pipeline_SEARCH_DIM|  return value|
+|ap_idle             |  out|    1|  ap_ctrl_hs|  similarity_search_Pipeline_SEARCH_DIM|  return value|
+|ap_ready            |  out|    1|  ap_ctrl_hs|  similarity_search_Pipeline_SEARCH_DIM|  return value|
+|c                   |   in|    4|     ap_none|                                      c|        scalar|
+|proto_1_0_address0  |  out|    8|   ap_memory|                              proto_1_0|         array|
+|proto_1_0_ce0       |  out|    1|   ap_memory|                              proto_1_0|         array|
+|proto_1_0_q0        |   in|    1|   ap_memory|                              proto_1_0|         array|
+|proto_1_1_address0  |  out|    8|   ap_memory|                              proto_1_1|         array|
+|proto_1_1_ce0       |  out|    1|   ap_memory|                              proto_1_1|         array|
+|proto_1_1_q0        |   in|    1|   ap_memory|                              proto_1_1|         array|
+|proto_1_2_address0  |  out|    8|   ap_memory|                              proto_1_2|         array|
+|proto_1_2_ce0       |  out|    1|   ap_memory|                              proto_1_2|         array|
+|proto_1_2_q0        |   in|    1|   ap_memory|                              proto_1_2|         array|
+|proto_1_3_address0  |  out|    8|   ap_memory|                              proto_1_3|         array|
+|proto_1_3_ce0       |  out|    1|   ap_memory|                              proto_1_3|         array|
+|proto_1_3_q0        |   in|    1|   ap_memory|                              proto_1_3|         array|
+|proto_1_4_address0  |  out|    8|   ap_memory|                              proto_1_4|         array|
+|proto_1_4_ce0       |  out|    1|   ap_memory|                              proto_1_4|         array|
+|proto_1_4_q0        |   in|    1|   ap_memory|                              proto_1_4|         array|
+|proto_1_5_address0  |  out|    8|   ap_memory|                              proto_1_5|         array|
+|proto_1_5_ce0       |  out|    1|   ap_memory|                              proto_1_5|         array|
+|proto_1_5_q0        |   in|    1|   ap_memory|                              proto_1_5|         array|
+|proto_1_6_address0  |  out|    8|   ap_memory|                              proto_1_6|         array|
+|proto_1_6_ce0       |  out|    1|   ap_memory|                              proto_1_6|         array|
+|proto_1_6_q0        |   in|    1|   ap_memory|                              proto_1_6|         array|
+|proto_1_7_address0  |  out|    8|   ap_memory|                              proto_1_7|         array|
+|proto_1_7_ce0       |  out|    1|   ap_memory|                              proto_1_7|         array|
+|proto_1_7_q0        |   in|    1|   ap_memory|                              proto_1_7|         array|
+|query_0_address0    |  out|    5|   ap_memory|                                query_0|         array|
+|query_0_ce0         |  out|    1|   ap_memory|                                query_0|         array|
+|query_0_q0          |   in|    1|   ap_memory|                                query_0|         array|
+|query_1_address0    |  out|    5|   ap_memory|                                query_1|         array|
+|query_1_ce0         |  out|    1|   ap_memory|                                query_1|         array|
+|query_1_q0          |   in|    1|   ap_memory|                                query_1|         array|
+|query_2_address0    |  out|    5|   ap_memory|                                query_2|         array|
+|query_2_ce0         |  out|    1|   ap_memory|                                query_2|         array|
+|query_2_q0          |   in|    1|   ap_memory|                                query_2|         array|
+|query_3_address0    |  out|    5|   ap_memory|                                query_3|         array|
+|query_3_ce0         |  out|    1|   ap_memory|                                query_3|         array|
+|query_3_q0          |   in|    1|   ap_memory|                                query_3|         array|
+|query_4_address0    |  out|    5|   ap_memory|                                query_4|         array|
+|query_4_ce0         |  out|    1|   ap_memory|                                query_4|         array|
+|query_4_q0          |   in|    1|   ap_memory|                                query_4|         array|
+|query_5_address0    |  out|    5|   ap_memory|                                query_5|         array|
+|query_5_ce0         |  out|    1|   ap_memory|                                query_5|         array|
+|query_5_q0          |   in|    1|   ap_memory|                                query_5|         array|
+|query_6_address0    |  out|    5|   ap_memory|                                query_6|         array|
+|query_6_ce0         |  out|    1|   ap_memory|                                query_6|         array|
+|query_6_q0          |   in|    1|   ap_memory|                                query_6|         array|
+|query_7_address0    |  out|    5|   ap_memory|                                query_7|         array|
+|query_7_ce0         |  out|    1|   ap_memory|                                query_7|         array|
+|query_7_q0          |   in|    1|   ap_memory|                                query_7|         array|
+|score_out           |  out|    9|      ap_vld|                              score_out|       pointer|
+|score_out_ap_vld    |  out|    1|      ap_vld|                              score_out|       pointer|
++--------------------+-----+-----+------------+---------------------------------------+--------------+
+

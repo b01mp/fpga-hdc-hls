@@ -1,0 +1,147 @@
+
+
+================================================================
+== Vitis HLS Report for 'search_similarity_top_Pipeline_SEED_DIM'
+================================================================
+* Date:           Wed Jul  8 23:10:04 2026
+
+* Version:        2026.1 (Build 6493734 on Jun 16 2026)
+* Project:        proj_synth_search
+* Solution:       sol1
+* Product family: zynq
+* Target device:  xc7z020-clg484-1
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+----------+----------+------------+
+    |  Clock |  Target  | Estimated| Uncertainty|
+    +--------+----------+----------+------------+
+    |ap_clk  |  10.00 ns|  4.999 ns|     2.70 ns|
+    +--------+----------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+-------------------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval |      Pipeline     |
+    |   min   |   max   |    min   |    max   | min | max |        Type       |
+    +---------+---------+----------+----------+-----+-----+-------------------+
+    |      258|      258|  2.580 us|  2.580 us|    0|    0|  loop pipeline stp|
+    +---------+---------+----------+----------+-----+-----+-------------------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +------------+---------+---------+----------+-----------+-----------+------+----------+
+        |            |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |  Loop Name |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- SEED_DIM  |      256|      256|         2|          1|          1|   256|       yes|
+        +------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++-----------------+---------+-----+--------+-------+-----+
+|       Name      | BRAM_18K| DSP |   FF   |  LUT  | URAM|
++-----------------+---------+-----+--------+-------+-----+
+|DSP              |        -|    -|       -|      -|    -|
+|Expression       |        -|    -|       0|     45|    -|
+|FIFO             |        -|    -|       -|      -|    -|
+|Instance         |        -|    -|       -|      -|    -|
+|Memory           |        -|    -|       -|      -|    -|
+|Multiplexer      |        -|    -|       0|     45|    -|
+|Register         |        -|    -|      21|      -|    -|
++-----------------+---------+-----+--------+-------+-----+
+|Total            |        0|    0|      21|     90|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Available        |      280|  220|  106400|  53200|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Utilization (%)  |        0|    0|      ~0|     ~0|    0|
++-----------------+---------+-----+--------+-------+-----+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +------------------------+----------+----+---+----+------------+------------+
+    |      Variable Name     | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +------------------------+----------+----+---+----+------------+------------+
+    |add_ln60_fu_98_p2       |         +|   0|  0|  14|           9|           1|
+    |best_score_1_fu_128_p2  |         +|   0|  0|  14|           9|           9|
+    |icmp_ln60_fu_92_p2      |      icmp|   0|  0|  13|           9|          10|
+    |ap_enable_pp0           |       xor|   0|  0|   2|           1|           2|
+    |xor_ln30_fu_118_p2      |       xor|   0|  0|   2|           1|           1|
+    +------------------------+----------+----+---+----+------------+------------+
+    |Total                   |          |   0|  0|  45|          29|          23|
+    +------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +-------------------------+----+-----------+-----+-----------+
+    |           Name          | LUT| Input Size| Bits| Total Bits|
+    +-------------------------+----+-----------+-----+-----------+
+    |ap_done_int              |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1  |   9|          2|    1|          2|
+    |ap_sig_allocacmp_i_1     |   9|          2|    9|         18|
+    |best_score_fu_38         |   9|          2|    9|         18|
+    |i_fu_42                  |   9|          2|    9|         18|
+    +-------------------------+----+-----------+-----+-----------+
+    |Total                    |  45|         10|   29|         58|
+    +-------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------+---+----+-----+-----------+
+    |           Name          | FF| LUT| Bits| Const Bits|
+    +-------------------------+---+----+-----+-----------+
+    |ap_CS_fsm                |  1|   0|    1|          0|
+    |ap_done_reg              |  1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1  |  1|   0|    1|          0|
+    |best_score_fu_38         |  9|   0|    9|          0|
+    |i_fu_42                  |  9|   0|    9|          0|
+    +-------------------------+---+----+-----+-----------+
+    |Total                    | 21|   0|   21|          0|
+    +-------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-----------------------+-----+-----+------------+-----------------------------------------+--------------+
+|       RTL Ports       | Dir | Bits|  Protocol  |              Source Object              |    C Type    |
++-----------------------+-----+-----+------------+-----------------------------------------+--------------+
+|ap_clk                 |   in|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEED_DIM|  return value|
+|ap_rst                 |   in|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEED_DIM|  return value|
+|ap_start               |   in|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEED_DIM|  return value|
+|ap_done                |  out|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEED_DIM|  return value|
+|ap_idle                |  out|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEED_DIM|  return value|
+|ap_ready               |  out|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEED_DIM|  return value|
+|proto_address0         |  out|   12|   ap_memory|                                    proto|         array|
+|proto_ce0              |  out|    1|   ap_memory|                                    proto|         array|
+|proto_q0               |   in|    1|   ap_memory|                                    proto|         array|
+|query_address0         |  out|    8|   ap_memory|                                    query|         array|
+|query_ce0              |  out|    1|   ap_memory|                                    query|         array|
+|query_q0               |   in|    1|   ap_memory|                                    query|         array|
+|best_score_out         |  out|    9|      ap_vld|                           best_score_out|       pointer|
+|best_score_out_ap_vld  |  out|    1|      ap_vld|                           best_score_out|       pointer|
++-----------------------+-----+-----+------------+-----------------------------------------+--------------+
+

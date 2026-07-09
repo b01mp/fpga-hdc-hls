@@ -19,6 +19,7 @@ _METRIC_ALIASES if any come back None.
 """
 import re
 from .estimate import estimate
+from .models import primitives as P
 
 
 # Vitis reports resources under version-dependent column names.
@@ -156,11 +157,60 @@ def calibrate(samples):
             print(f"  {m:<15} (no data)")
 
 
+# --------------------------------------------------------------------------- #
+# Per-primitive calibration against real csynth.
+#
+# Our first synthesis was per-primitive (each category top wraps ONE primitive at
+# D=256, binary, on xc7z020 @ 10ns), so we calibrate the per-primitive cost models
+# in models/primitives.py -- NOT the full-pipeline estimate(). Numbers below are
+# from DSE/synth_results/{dp1_baseline, dp8}.
+# --------------------------------------------------------------------------- #
+SYNTH_DATA = {
+    #  name         (DP, CP): dict(cycles, lut, ff)
+    "bind":       {(1, 1): dict(cycles=258,  lut=63,   ff=20),
+                   (8, 1): dict(cycles=35,   lut=82,   ff=20)},
+    "threshold":  {(1, 1): dict(cycles=258,  lut=100,  ff=52),
+                   (8, 1): dict(cycles=35,   lut=378,  ff=52)},
+    "gather":     {(1, 1): dict(cycles=258,  lut=61,   ff=20),
+                   (8, 1): dict(cycles=34,   lut=45,   ff=18)},
+    "similarity": {(1, 1): dict(cycles=2569, lut=539,  ff=201),
+                   (8, 2): dict(cycles=341,  lut=1376, ff=237)},
+}
+_SYNTH_D, _SYNTH_K, _SYNTH_ACC, _SYNTH_SIM = 256, 10, 32, 32
+
+
+def predict_primitive(name, DP, CP):
+    """Estimator prediction (cycles, LUT, FF) for one primitive at the synth sizes."""
+    if name == "bind":
+        c, r = P.cost_bind(_SYNTH_D, DP, "binary", 1)
+    elif name == "threshold":
+        c, r = P.cost_threshold(_SYNTH_D, DP, _SYNTH_ACC)
+    elif name == "gather":
+        c, r = P.cost_gather(_SYNTH_D, DP)
+    elif name == "similarity":
+        c, r = P.cost_similarity(_SYNTH_D, _SYNTH_K, DP, CP, "binary", 1, _SYNTH_SIM)
+    else:
+        raise ValueError(name)
+    return c, r.lut, r.ff
+
+
+def _errpct(pred, act):
+    return None if not act else 100.0 * (pred - act) / act
+
+
+def calibrate_primitives():
+    """Print predicted vs actual (cycles + LUT) for each synthesized primitive."""
+    hdr = (f"{'primitive':<11}{'DP':>3}{'CP':>3} |{'cyc pred':>9}{'cyc act':>9}{'err%':>7} "
+           f"|{'LUT pred':>9}{'LUT act':>9}{'err%':>7}")
+    print(hdr)
+    print("-" * len(hdr))
+    for name, pts in SYNTH_DATA.items():
+        for (DP, CP), act in pts.items():
+            pc, plut, _ = predict_primitive(name, DP, CP)
+            ce, le = _errpct(pc, act["cycles"]), _errpct(plut, act["lut"])
+            print(f"{name:<11}{DP:>3}{CP:>3} |{pc:>9.0f}{act['cycles']:>9}{ce:>6.0f}% "
+                  f"|{plut:>9.0f}{act['lut']:>9}{le:>6.0f}%")
+
+
 if __name__ == "__main__":
-    print(__doc__)
-    print("No calibration data yet. Once the architecture parameters are synthesized,")
-    print("collect (params, report_path) pairs and call:")
-    print()
-    print("    from estimator.calibrate import samples_from_reports, calibrate")
-    print("    pairs = [({'dp': 8, 'family': 'binary'}, 'proj_synth_bind/sol1/syn/report/encoding_bind_top_csynth.rpt')]")
-    print("    calibrate(samples_from_reports(pairs))")
+    calibrate_primitives()

@@ -1,0 +1,9 @@
+config,primitive,top_function,hv_dim,num_prototypes,DP,CP,family,part,clk_ns,latency_cycles,latency_us,LUT,FF,DSP,BRAM18K,URAM
+dp1_baseline,bind,encoding_bind_top,256,,1,1,binary,xc7z020,10,258,2.58,63,20,0,0,0
+dp1_baseline,threshold,aggregation_threshold_top,256,,1,1,binary,xc7z020,10,258,2.58,100,52,0,0,0
+dp1_baseline,gather,memory_gather_top,256,,1,1,binary,xc7z020,10,258,2.58,61,20,0,0,0
+dp1_baseline,similarity,search_similarity_top,256,10,1,1,binary,xc7z020,10,2569,25.69,539,201,0,0,0
+dp8,bind,encoding_bind_top,256,,8,1,binary,xc7z020,10,35,0.35,82,20,0,0,0
+dp8,threshold,aggregation_threshold_top,256,,8,1,binary,xc7z020,10,35,0.35,378,52,0,0,0
+dp8,gather,memory_gather_top,256,,8,1,binary,xc7z020,10,34,0.34,45,18,0,0,0
+dp8,similarity,search_similarity_top,256,10,8,2,binary,xc7z020,10,341,3.41,1376,237,0,0,0

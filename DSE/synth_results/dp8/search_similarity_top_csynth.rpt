@@ -1,0 +1,201 @@
+
+
+================================================================
+== Vitis HLS Report for 'search_similarity_top'
+================================================================
+* Date:           Wed Jul  8 23:26:51 2026
+
+* Version:        2026.1 (Build 6493734 on Jun 16 2026)
+* Project:        proj_synth_search
+* Solution:       sol1
+* Product family: zynq
+* Target device:  xc7z020-clg484-1
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+----------+----------+------------+
+    |  Clock |  Target  | Estimated| Uncertainty|
+    +--------+----------+----------+------------+
+    |ap_clk  |  10.00 ns|  5.058 ns|     2.70 ns|
+    +--------+----------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |      341|      341|  3.410 us|  3.410 us|  342|  342|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+---------+----------+----------+-----+-----+---------+
+        |                                                                         |                                                               |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+        |                                 Instance                                |                             Module                            |   min   |   max   |    min   |    max   | min | max |   Type  |
+        +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+---------+----------+----------+-----+-----+---------+
+        |grp_similarity_search_ap_uint_1_ap_int_32_256_10_binary_tag_8_2_s_fu_66  |similarity_search_ap_uint_1_ap_int_32_256_10_binary_tag_8_2_s  |      340|      340|  3.400 us|  3.400 us|  340|  340|       no|
+        +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+---------+----------+----------+-----+-----+---------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++-----------------+---------+-----+--------+-------+-----+
+|       Name      | BRAM_18K| DSP |   FF   |  LUT  | URAM|
++-----------------+---------+-----+--------+-------+-----+
+|DSP              |        -|    -|       -|      -|    -|
+|Expression       |        -|    -|       -|      -|    -|
+|FIFO             |        -|    -|       -|      -|    -|
+|Instance         |        -|    -|     234|   1362|    -|
+|Memory           |        -|    -|       -|      -|    -|
+|Multiplexer      |        -|    -|       0|     14|    -|
+|Register         |        -|    -|       3|      -|    -|
++-----------------+---------+-----+--------+-------+-----+
+|Total            |        0|    0|     237|   1376|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Available        |      280|  220|  106400|  53200|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Utilization (%)  |        0|    0|      ~0|      2|    0|
++-----------------+---------+-----+--------+-------+-----+
+
++ Detail: 
+    * Instance: 
+    +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+----+-----+------+-----+
+    |                                 Instance                                |                             Module                            | BRAM_18K| DSP|  FF |  LUT | URAM|
+    +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+----+-----+------+-----+
+    |grp_similarity_search_ap_uint_1_ap_int_32_256_10_binary_tag_8_2_s_fu_66  |similarity_search_ap_uint_1_ap_int_32_256_10_binary_tag_8_2_s  |        0|   0|  234|  1362|    0|
+    +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+----+-----+------+-----+
+    |Total                                                                    |                                                               |        0|   0|  234|  1362|    0|
+    +-------------------------------------------------------------------------+---------------------------------------------------------------+---------+----+-----+------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    N/A
+
+    * Multiplexer: 
+    +-----------+----+-----------+-----+-----------+
+    |    Name   | LUT| Input Size| Bits| Total Bits|
+    +-----------+----+-----------+-----+-----------+
+    |ap_NS_fsm  |  14|          3|    1|          3|
+    +-----------+----+-----------+-----+-----------+
+    |Total      |  14|          3|    1|          3|
+    +-----------+----+-----------+-----+-----------+
+
+    * Register: 
+    +--------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |                                         Name                                         | FF| LUT| Bits| Const Bits|
+    +--------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |ap_CS_fsm                                                                             |  2|   0|    2|          0|
+    |grp_similarity_search_ap_uint_1_ap_int_32_256_10_binary_tag_8_2_s_fu_66_ap_start_reg  |  1|   0|    1|          0|
+    +--------------------------------------------------------------------------------------+---+----+-----+-----------+
+    |Total                                                                                 |  3|   0|    3|          0|
+    +--------------------------------------------------------------------------------------+---+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++--------------------+-----+-----+------------+-----------------------+--------------+
+|      RTL Ports     | Dir | Bits|  Protocol  |     Source Object     |    C Type    |
++--------------------+-----+-----+------------+-----------------------+--------------+
+|ap_clk              |   in|    1|  ap_ctrl_hs|  search_similarity_top|  return value|
+|ap_rst              |   in|    1|  ap_ctrl_hs|  search_similarity_top|  return value|
+|ap_start            |   in|    1|  ap_ctrl_hs|  search_similarity_top|  return value|
+|ap_done             |  out|    1|  ap_ctrl_hs|  search_similarity_top|  return value|
+|ap_idle             |  out|    1|  ap_ctrl_hs|  search_similarity_top|  return value|
+|ap_ready            |  out|    1|  ap_ctrl_hs|  search_similarity_top|  return value|
+|ap_return           |  out|   32|  ap_ctrl_hs|  search_similarity_top|  return value|
+|query_0_address0    |  out|    5|   ap_memory|                query_0|         array|
+|query_0_ce0         |  out|    1|   ap_memory|                query_0|         array|
+|query_0_q0          |   in|    1|   ap_memory|                query_0|         array|
+|query_1_address0    |  out|    5|   ap_memory|                query_1|         array|
+|query_1_ce0         |  out|    1|   ap_memory|                query_1|         array|
+|query_1_q0          |   in|    1|   ap_memory|                query_1|         array|
+|query_2_address0    |  out|    5|   ap_memory|                query_2|         array|
+|query_2_ce0         |  out|    1|   ap_memory|                query_2|         array|
+|query_2_q0          |   in|    1|   ap_memory|                query_2|         array|
+|query_3_address0    |  out|    5|   ap_memory|                query_3|         array|
+|query_3_ce0         |  out|    1|   ap_memory|                query_3|         array|
+|query_3_q0          |   in|    1|   ap_memory|                query_3|         array|
+|query_4_address0    |  out|    5|   ap_memory|                query_4|         array|
+|query_4_ce0         |  out|    1|   ap_memory|                query_4|         array|
+|query_4_q0          |   in|    1|   ap_memory|                query_4|         array|
+|query_5_address0    |  out|    5|   ap_memory|                query_5|         array|
+|query_5_ce0         |  out|    1|   ap_memory|                query_5|         array|
+|query_5_q0          |   in|    1|   ap_memory|                query_5|         array|
+|query_6_address0    |  out|    5|   ap_memory|                query_6|         array|
+|query_6_ce0         |  out|    1|   ap_memory|                query_6|         array|
+|query_6_q0          |   in|    1|   ap_memory|                query_6|         array|
+|query_7_address0    |  out|    5|   ap_memory|                query_7|         array|
+|query_7_ce0         |  out|    1|   ap_memory|                query_7|         array|
+|query_7_q0          |   in|    1|   ap_memory|                query_7|         array|
+|proto_0_0_address0  |  out|    8|   ap_memory|              proto_0_0|         array|
+|proto_0_0_ce0       |  out|    1|   ap_memory|              proto_0_0|         array|
+|proto_0_0_q0        |   in|    1|   ap_memory|              proto_0_0|         array|
+|proto_0_1_address0  |  out|    8|   ap_memory|              proto_0_1|         array|
+|proto_0_1_ce0       |  out|    1|   ap_memory|              proto_0_1|         array|
+|proto_0_1_q0        |   in|    1|   ap_memory|              proto_0_1|         array|
+|proto_0_2_address0  |  out|    8|   ap_memory|              proto_0_2|         array|
+|proto_0_2_ce0       |  out|    1|   ap_memory|              proto_0_2|         array|
+|proto_0_2_q0        |   in|    1|   ap_memory|              proto_0_2|         array|
+|proto_0_3_address0  |  out|    8|   ap_memory|              proto_0_3|         array|
+|proto_0_3_ce0       |  out|    1|   ap_memory|              proto_0_3|         array|
+|proto_0_3_q0        |   in|    1|   ap_memory|              proto_0_3|         array|
+|proto_0_4_address0  |  out|    8|   ap_memory|              proto_0_4|         array|
+|proto_0_4_ce0       |  out|    1|   ap_memory|              proto_0_4|         array|
+|proto_0_4_q0        |   in|    1|   ap_memory|              proto_0_4|         array|
+|proto_0_5_address0  |  out|    8|   ap_memory|              proto_0_5|         array|
+|proto_0_5_ce0       |  out|    1|   ap_memory|              proto_0_5|         array|
+|proto_0_5_q0        |   in|    1|   ap_memory|              proto_0_5|         array|
+|proto_0_6_address0  |  out|    8|   ap_memory|              proto_0_6|         array|
+|proto_0_6_ce0       |  out|    1|   ap_memory|              proto_0_6|         array|
+|proto_0_6_q0        |   in|    1|   ap_memory|              proto_0_6|         array|
+|proto_0_7_address0  |  out|    8|   ap_memory|              proto_0_7|         array|
+|proto_0_7_ce0       |  out|    1|   ap_memory|              proto_0_7|         array|
+|proto_0_7_q0        |   in|    1|   ap_memory|              proto_0_7|         array|
+|proto_1_0_address0  |  out|    8|   ap_memory|              proto_1_0|         array|
+|proto_1_0_ce0       |  out|    1|   ap_memory|              proto_1_0|         array|
+|proto_1_0_q0        |   in|    1|   ap_memory|              proto_1_0|         array|
+|proto_1_1_address0  |  out|    8|   ap_memory|              proto_1_1|         array|
+|proto_1_1_ce0       |  out|    1|   ap_memory|              proto_1_1|         array|
+|proto_1_1_q0        |   in|    1|   ap_memory|              proto_1_1|         array|
+|proto_1_2_address0  |  out|    8|   ap_memory|              proto_1_2|         array|
+|proto_1_2_ce0       |  out|    1|   ap_memory|              proto_1_2|         array|
+|proto_1_2_q0        |   in|    1|   ap_memory|              proto_1_2|         array|
+|proto_1_3_address0  |  out|    8|   ap_memory|              proto_1_3|         array|
+|proto_1_3_ce0       |  out|    1|   ap_memory|              proto_1_3|         array|
+|proto_1_3_q0        |   in|    1|   ap_memory|              proto_1_3|         array|
+|proto_1_4_address0  |  out|    8|   ap_memory|              proto_1_4|         array|
+|proto_1_4_ce0       |  out|    1|   ap_memory|              proto_1_4|         array|
+|proto_1_4_q0        |   in|    1|   ap_memory|              proto_1_4|         array|
+|proto_1_5_address0  |  out|    8|   ap_memory|              proto_1_5|         array|
+|proto_1_5_ce0       |  out|    1|   ap_memory|              proto_1_5|         array|
+|proto_1_5_q0        |   in|    1|   ap_memory|              proto_1_5|         array|
+|proto_1_6_address0  |  out|    8|   ap_memory|              proto_1_6|         array|
+|proto_1_6_ce0       |  out|    1|   ap_memory|              proto_1_6|         array|
+|proto_1_6_q0        |   in|    1|   ap_memory|              proto_1_6|         array|
+|proto_1_7_address0  |  out|    8|   ap_memory|              proto_1_7|         array|
+|proto_1_7_ce0       |  out|    1|   ap_memory|              proto_1_7|         array|
+|proto_1_7_q0        |   in|    1|   ap_memory|              proto_1_7|         array|
++--------------------+-----+-----+------------+-----------------------+--------------+
+

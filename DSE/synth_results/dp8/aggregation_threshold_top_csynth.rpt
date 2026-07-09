@@ -1,0 +1,186 @@
+
+
+================================================================
+== Vitis HLS Report for 'aggregation_threshold_top'
+================================================================
+* Date:           Wed Jul  8 23:26:09 2026
+
+* Version:        2026.1 (Build 6493734 on Jun 16 2026)
+* Project:        proj_synth_aggregation
+* Solution:       sol1
+* Product family: zynq
+* Target device:  xc7z020-clg484-1
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+----------+----------+------------+
+    |  Clock |  Target  | Estimated| Uncertainty|
+    +--------+----------+----------+------------+
+    |ap_clk  |  10.00 ns|  4.999 ns|     2.70 ns|
+    +--------+----------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |       35|       35|  0.350 us|  0.350 us|   36|   36|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        +------------------------------------------------------------+--------------------------------------------------+---------+---------+----------+----------+-----+-----+-------------------+
+        |                                                            |                                                  |  Latency (cycles) |  Latency (absolute) |  Interval |      Pipeline     |
+        |                          Instance                          |                      Module                      |   min   |   max   |    min   |    max   | min | max |        Type       |
+        +------------------------------------------------------------+--------------------------------------------------+---------+---------+----------+----------+-----+-----+-------------------+
+        |grp_threshold_ap_int_32_ap_uint_1_256_binary_tag_8_s_fu_62  |threshold_ap_int_32_ap_uint_1_256_binary_tag_8_s  |       34|       34|  0.340 us|  0.340 us|    0|    0|  loop pipeline stp|
+        +------------------------------------------------------------+--------------------------------------------------+---------+---------+----------+----------+-----+-----+-------------------+
+
+        * Loop: 
+        N/A
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++-----------------+---------+-----+--------+-------+-----+
+|       Name      | BRAM_18K| DSP |   FF   |  LUT  | URAM|
++-----------------+---------+-----+--------+-------+-----+
+|DSP              |        -|    -|       -|      -|    -|
+|Expression       |        -|    -|       -|      -|    -|
+|FIFO             |        -|    -|       -|      -|    -|
+|Instance         |        -|    -|      17|    364|    -|
+|Memory           |        -|    -|       -|      -|    -|
+|Multiplexer      |        -|    -|       0|     14|    -|
+|Register         |        -|    -|      35|      -|    -|
++-----------------+---------+-----+--------+-------+-----+
+|Total            |        0|    0|      52|    378|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Available        |      280|  220|  106400|  53200|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Utilization (%)  |        0|    0|      ~0|     ~0|    0|
++-----------------+---------+-----+--------+-------+-----+
+
++ Detail: 
+    * Instance: 
+    +------------------------------------------------------------+--------------------------------------------------+---------+----+----+-----+-----+
+    |                          Instance                          |                      Module                      | BRAM_18K| DSP| FF | LUT | URAM|
+    +------------------------------------------------------------+--------------------------------------------------+---------+----+----+-----+-----+
+    |grp_threshold_ap_int_32_ap_uint_1_256_binary_tag_8_s_fu_62  |threshold_ap_int_32_ap_uint_1_256_binary_tag_8_s  |        0|   0|  17|  364|    0|
+    +------------------------------------------------------------+--------------------------------------------------+---------+----+----+-----+-----+
+    |Total                                                       |                                                  |        0|   0|  17|  364|    0|
+    +------------------------------------------------------------+--------------------------------------------------+---------+----+----+-----+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    N/A
+
+    * Multiplexer: 
+    +-----------+----+-----------+-----+-----------+
+    |    Name   | LUT| Input Size| Bits| Total Bits|
+    +-----------+----+-----------+-----+-----------+
+    |ap_NS_fsm  |  14|          3|    1|          3|
+    +-----------+----+-----------+-----+-----------+
+    |Total      |  14|          3|    1|          3|
+    +-----------+----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------------------------------------+----+----+-----+-----------+
+    |                                   Name                                  | FF | LUT| Bits| Const Bits|
+    +-------------------------------------------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                                                |   2|   0|    2|          0|
+    |count_read_reg_100                                                       |  32|   0|   32|          0|
+    |grp_threshold_ap_int_32_ap_uint_1_256_binary_tag_8_s_fu_62_ap_start_reg  |   1|   0|    1|          0|
+    +-------------------------------------------------------------------------+----+----+-----+-----------+
+    |Total                                                                    |  35|   0|   35|          0|
+    +-------------------------------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++----------------+-----+-----+------------+---------------------------+--------------+
+|    RTL Ports   | Dir | Bits|  Protocol  |       Source Object       |    C Type    |
++----------------+-----+-----+------------+---------------------------+--------------+
+|ap_clk          |   in|    1|  ap_ctrl_hs|  aggregation_threshold_top|  return value|
+|ap_rst          |   in|    1|  ap_ctrl_hs|  aggregation_threshold_top|  return value|
+|ap_start        |   in|    1|  ap_ctrl_hs|  aggregation_threshold_top|  return value|
+|ap_done         |  out|    1|  ap_ctrl_hs|  aggregation_threshold_top|  return value|
+|ap_idle         |  out|    1|  ap_ctrl_hs|  aggregation_threshold_top|  return value|
+|ap_ready        |  out|    1|  ap_ctrl_hs|  aggregation_threshold_top|  return value|
+|acc_0_address0  |  out|    5|   ap_memory|                      acc_0|         array|
+|acc_0_ce0       |  out|    1|   ap_memory|                      acc_0|         array|
+|acc_0_q0        |   in|   32|   ap_memory|                      acc_0|         array|
+|acc_1_address0  |  out|    5|   ap_memory|                      acc_1|         array|
+|acc_1_ce0       |  out|    1|   ap_memory|                      acc_1|         array|
+|acc_1_q0        |   in|   32|   ap_memory|                      acc_1|         array|
+|acc_2_address0  |  out|    5|   ap_memory|                      acc_2|         array|
+|acc_2_ce0       |  out|    1|   ap_memory|                      acc_2|         array|
+|acc_2_q0        |   in|   32|   ap_memory|                      acc_2|         array|
+|acc_3_address0  |  out|    5|   ap_memory|                      acc_3|         array|
+|acc_3_ce0       |  out|    1|   ap_memory|                      acc_3|         array|
+|acc_3_q0        |   in|   32|   ap_memory|                      acc_3|         array|
+|acc_4_address0  |  out|    5|   ap_memory|                      acc_4|         array|
+|acc_4_ce0       |  out|    1|   ap_memory|                      acc_4|         array|
+|acc_4_q0        |   in|   32|   ap_memory|                      acc_4|         array|
+|acc_5_address0  |  out|    5|   ap_memory|                      acc_5|         array|
+|acc_5_ce0       |  out|    1|   ap_memory|                      acc_5|         array|
+|acc_5_q0        |   in|   32|   ap_memory|                      acc_5|         array|
+|acc_6_address0  |  out|    5|   ap_memory|                      acc_6|         array|
+|acc_6_ce0       |  out|    1|   ap_memory|                      acc_6|         array|
+|acc_6_q0        |   in|   32|   ap_memory|                      acc_6|         array|
+|acc_7_address0  |  out|    5|   ap_memory|                      acc_7|         array|
+|acc_7_ce0       |  out|    1|   ap_memory|                      acc_7|         array|
+|acc_7_q0        |   in|   32|   ap_memory|                      acc_7|         array|
+|out_0_address0  |  out|    5|   ap_memory|                      out_0|         array|
+|out_0_ce0       |  out|    1|   ap_memory|                      out_0|         array|
+|out_0_we0       |  out|    1|   ap_memory|                      out_0|         array|
+|out_0_d0        |  out|    1|   ap_memory|                      out_0|         array|
+|out_1_address0  |  out|    5|   ap_memory|                      out_1|         array|
+|out_1_ce0       |  out|    1|   ap_memory|                      out_1|         array|
+|out_1_we0       |  out|    1|   ap_memory|                      out_1|         array|
+|out_1_d0        |  out|    1|   ap_memory|                      out_1|         array|
+|out_2_address0  |  out|    5|   ap_memory|                      out_2|         array|
+|out_2_ce0       |  out|    1|   ap_memory|                      out_2|         array|
+|out_2_we0       |  out|    1|   ap_memory|                      out_2|         array|
+|out_2_d0        |  out|    1|   ap_memory|                      out_2|         array|
+|out_3_address0  |  out|    5|   ap_memory|                      out_3|         array|
+|out_3_ce0       |  out|    1|   ap_memory|                      out_3|         array|
+|out_3_we0       |  out|    1|   ap_memory|                      out_3|         array|
+|out_3_d0        |  out|    1|   ap_memory|                      out_3|         array|
+|out_4_address0  |  out|    5|   ap_memory|                      out_4|         array|
+|out_4_ce0       |  out|    1|   ap_memory|                      out_4|         array|
+|out_4_we0       |  out|    1|   ap_memory|                      out_4|         array|
+|out_4_d0        |  out|    1|   ap_memory|                      out_4|         array|
+|out_5_address0  |  out|    5|   ap_memory|                      out_5|         array|
+|out_5_ce0       |  out|    1|   ap_memory|                      out_5|         array|
+|out_5_we0       |  out|    1|   ap_memory|                      out_5|         array|
+|out_5_d0        |  out|    1|   ap_memory|                      out_5|         array|
+|out_6_address0  |  out|    5|   ap_memory|                      out_6|         array|
+|out_6_ce0       |  out|    1|   ap_memory|                      out_6|         array|
+|out_6_we0       |  out|    1|   ap_memory|                      out_6|         array|
+|out_6_d0        |  out|    1|   ap_memory|                      out_6|         array|
+|out_7_address0  |  out|    5|   ap_memory|                      out_7|         array|
+|out_7_ce0       |  out|    1|   ap_memory|                      out_7|         array|
+|out_7_we0       |  out|    1|   ap_memory|                      out_7|         array|
+|out_7_d0        |  out|    1|   ap_memory|                      out_7|         array|
+|count           |   in|   32|     ap_none|                      count|        scalar|
++----------------+-----+-----+------------+---------------------------+--------------+
+

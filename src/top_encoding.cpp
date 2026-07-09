@@ -12,10 +12,11 @@
 #include "common/hdc_types.hpp"
 #include "encoding/bind.hpp"
 
-#define ENC_D 256   // hv_dim (representative)
+#define ENC_D  256   // hv_dim
+#define ENC_DP 8     // dimension_parallelism (try 1, 4, 8, 16, 32 and compare reports)
 
 void encoding_bind_top(const hdc::binary_t a[ENC_D],
                        const hdc::binary_t b[ENC_D],
                        hdc::binary_t out[ENC_D]) {
-    hdc::bind<hdc::binary_t, ENC_D>(a, b, out);
+    hdc::bind<hdc::binary_t, ENC_D, hdc::binary_tag, ENC_DP>(a, b, out);
 }

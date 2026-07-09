@@ -1,0 +1,175 @@
+
+
+================================================================
+== Vitis HLS Report for 'search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM'
+================================================================
+* Date:           Wed Jul  8 23:10:04 2026
+
+* Version:        2026.1 (Build 6493734 on Jun 16 2026)
+* Project:        proj_synth_search
+* Solution:       sol1
+* Product family: zynq
+* Target device:  xc7z020-clg484-1
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+----------+----------+------------+
+    |  Clock |  Target  | Estimated| Uncertainty|
+    +--------+----------+----------+------------+
+    |ap_clk  |  10.00 ns|  6.202 ns|     2.70 ns|
+    +--------+----------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+-----------+-----------+-----+-----+-------------------+
+    |  Latency (cycles) |   Latency (absolute)  |  Interval |      Pipeline     |
+    |   min   |   max   |    min    |    max    | min | max |        Type       |
+    +---------+---------+-----------+-----------+-----+-----+-------------------+
+    |     2307|     2307|  23.070 us|  23.070 us|    0|    0|  loop pipeline stp|
+    +---------+---------+-----------+-----------+-----+-----+-------------------+
+
+    + Detail: 
+        * Instance: 
+        N/A
+
+        * Loop: 
+        +-----------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |                             |  Latency (cycles) | Iteration|  Initiation Interval  | Trip |          |
+        |          Loop Name          |   min   |   max   |  Latency |  achieved |   target  | Count| Pipelined|
+        +-----------------------------+---------+---------+----------+-----------+-----------+------+----------+
+        |- SEARCH_CLASSES_SEARCH_DIM  |     2305|     2305|         3|          1|          1|  2304|       yes|
+        +-----------------------------+---------+---------+----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++-----------------+---------+-----+--------+-------+-----+
+|       Name      | BRAM_18K| DSP |   FF   |  LUT  | URAM|
++-----------------+---------+-----+--------+-------+-----+
+|DSP              |        -|    -|       -|      -|    -|
+|Expression       |        -|    -|       0|    281|    -|
+|FIFO             |        -|    -|       -|      -|    -|
+|Instance         |        -|    -|       -|      -|    -|
+|Memory           |        -|    -|       -|      -|    -|
+|Multiplexer      |        -|    -|       0|     81|    -|
+|Register         |        -|    -|     173|      -|    -|
++-----------------+---------+-----+--------+-------+-----+
+|Total            |        0|    0|     173|    362|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Available        |      280|  220|  106400|  53200|    0|
++-----------------+---------+-----+--------+-------+-----+
+|Utilization (%)  |        0|    0|      ~0|     ~0|    0|
++-----------------+---------+-----+--------+-------+-----+
+
++ Detail: 
+    * Instance: 
+    N/A
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +-------------------------+----------+----+---+----+------------+------------+
+    |      Variable Name      | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +-------------------------+----------+----+---+----+------------+------------+
+    |add_ln68_1_fu_170_p2     |         +|   0|  0|  12|          12|           1|
+    |add_ln68_fu_209_p2       |         +|   0|  0|  13|           4|           4|
+    |add_ln72_fu_243_p2       |         +|   0|  0|  14|           9|           1|
+    |add_ln75_fu_232_p2       |         +|   0|  0|  12|          12|          12|
+    |score_1_fu_305_p2        |         +|   0|  0|  14|           9|           9|
+    |better_fu_315_p2         |      icmp|   0|  0|  39|          32|          32|
+    |icmp_ln68_fu_164_p2      |      icmp|   0|  0|  12|          12|          12|
+    |icmp_ln72_fu_187_p2      |      icmp|   0|  0|  13|           9|          10|
+    |best_idx_1_fu_332_p3     |    select|   0|  0|  32|           1|          32|
+    |best_score_2_fu_321_p3   |    select|   0|  0|  32|           1|          32|
+    |empty_fu_201_p3          |    select|   0|  0|   2|           1|           1|
+    |select_ln58_1_fu_274_p3  |    select|   0|  0|   9|           1|           1|
+    |select_ln58_fu_193_p3    |    select|   0|  0|   9|           1|           1|
+    |select_ln68_1_fu_288_p3  |    select|   0|  0|  32|           1|          32|
+    |select_ln68_fu_281_p3    |    select|   0|  0|  32|           1|          32|
+    |ap_enable_pp0            |       xor|   0|  0|   2|           1|           2|
+    |xor_ln30_fu_295_p2       |       xor|   0|  0|   2|           1|           1|
+    +-------------------------+----------+----+---+----+------------+------------+
+    |Total                    |          |   0|  0| 281|         108|         215|
+    +-------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +--------------------------------------+----+-----------+-----+-----------+
+    |                 Name                 | LUT| Input Size| Bits| Total Bits|
+    +--------------------------------------+----+-----------+-----+-----------+
+    |ap_done_int                           |   9|          2|    1|          2|
+    |ap_enable_reg_pp0_iter1               |   9|          2|    1|          2|
+    |ap_sig_allocacmp_indvar_flatten_load  |   9|          2|   12|         24|
+    |best_idx_fu_76                        |   9|          2|   32|         64|
+    |best_score_fu_72                      |   9|          2|   32|         64|
+    |c_fu_80                               |   9|          2|    4|          8|
+    |i_1_fu_60                             |   9|          2|    9|         18|
+    |indvar_flatten_fu_84                  |   9|          2|   12|         24|
+    |score_fu_56                           |   9|          2|    9|         18|
+    +--------------------------------------+----+-----------+-----+-----------+
+    |Total                                 |  81|         18|  112|        224|
+    +--------------------------------------+----+-----------+-----+-----------+
+
+    * Register: 
+    +----------------------------------+----+----+-----+-----------+
+    |               Name               | FF | LUT| Bits| Const Bits|
+    +----------------------------------+----+----+-----+-----------+
+    |add_ln68_reg_435                  |   4|   0|    4|          0|
+    |ap_CS_fsm                         |   1|   0|    1|          0|
+    |ap_done_reg                       |   1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter1           |   1|   0|    1|          0|
+    |ap_enable_reg_pp0_iter2           |   1|   0|    1|          0|
+    |ap_loop_exit_ready_pp0_iter1_reg  |   1|   0|    1|          0|
+    |best_idx_11_fu_64                 |  32|   0|   32|          0|
+    |best_idx_fu_76                    |  32|   0|   32|          0|
+    |best_score_32_fu_68               |  32|   0|   32|          0|
+    |best_score_fu_72                  |  32|   0|   32|          0|
+    |c_fu_80                           |   4|   0|    4|          0|
+    |i_1_fu_60                         |   9|   0|    9|          0|
+    |icmp_ln68_reg_424                 |   1|   0|    1|          0|
+    |icmp_ln72_reg_428                 |   1|   0|    1|          0|
+    |indvar_flatten_fu_84              |  12|   0|   12|          0|
+    |score_fu_56                       |   9|   0|    9|          0|
+    +----------------------------------+----+----+-----+-----------+
+    |Total                             | 173|   0|  173|          0|
+    +----------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++------------------------+-----+-----+------------+----------------------------------------------------------+--------------+
+|        RTL Ports       | Dir | Bits|  Protocol  |                       Source Object                      |    C Type    |
++------------------------+-----+-----+------------+----------------------------------------------------------+--------------+
+|ap_clk                  |   in|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM|  return value|
+|ap_rst                  |   in|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM|  return value|
+|ap_start                |   in|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM|  return value|
+|ap_done                 |  out|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM|  return value|
+|ap_idle                 |  out|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM|  return value|
+|ap_ready                |  out|    1|  ap_ctrl_hs|  search_similarity_top_Pipeline_SEARCH_CLASSES_SEARCH_DIM|  return value|
+|zext_ln60               |   in|    9|     ap_none|                                                 zext_ln60|        scalar|
+|proto_address0          |  out|   12|   ap_memory|                                                     proto|         array|
+|proto_ce0               |  out|    1|   ap_memory|                                                     proto|         array|
+|proto_q0                |   in|    1|   ap_memory|                                                     proto|         array|
+|query_address0          |  out|    8|   ap_memory|                                                     query|         array|
+|query_ce0               |  out|    1|   ap_memory|                                                     query|         array|
+|query_q0                |   in|    1|   ap_memory|                                                     query|         array|
+|best_idx_11_out         |  out|   32|      ap_vld|                                           best_idx_11_out|       pointer|
+|best_idx_11_out_ap_vld  |  out|    1|      ap_vld|                                           best_idx_11_out|       pointer|
++------------------------+-----+-----+------------+----------------------------------------------------------+--------------+
+

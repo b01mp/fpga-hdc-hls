@@ -18,11 +18,22 @@ def ceil_div(a, b):
     return -(-a // b)
 
 
+# --- Fixed control/interface overhead, fitted from DP=1 csynth (see calibrate.py).
+#     Real primitives carry loop-control, addressing, and interface logic the
+#     datapath-only lane model misses; these offsets capture it. First-order fit
+#     (2 synth points per primitive) -- refine as more design points get synthesized.
+PIPE_FILL      = 2                           # cycles of pipeline fill on elementwise loops
+_OH_BIND       = Resources(lut=62,  ff=20)
+_OH_THRESHOLD  = Resources(lut=68,  ff=52)
+_OH_GATHER     = Resources(lut=60,  ff=20)
+_OH_SIMILARITY = Resources(lut=474, ff=169)
+
+
 # ---- Encoding -------------------------------------------------------------
 def cost_bind(D, DP, family, elem_bits):
     """(a,b)->out elementwise. ceil(D/DP) cycles; DP bind lanes."""
-    cycles = ceil_div(D, DP)
-    res = bind_lane(family, elem_bits).scale(DP)
+    cycles = ceil_div(D, DP) + PIPE_FILL
+    res = bind_lane(family, elem_bits).scale(DP) + _OH_BIND
     return cycles, res
 
 
@@ -44,16 +55,16 @@ def cost_bundle(D, DP, acc_bits):
 
 def cost_threshold(D, DP, acc_bits):
     """Collapse accumulator -> HV (majority/sign/passthrough). ceil(D/DP) cycles."""
-    cycles = ceil_div(D, DP)
-    res = compare_lane(acc_bits).scale(DP)
+    cycles = ceil_div(D, DP) + PIPE_FILL
+    res = compare_lane(acc_bits).scale(DP) + _OH_THRESHOLD
     return cycles, res
 
 
 # ---- Memory ---------------------------------------------------------------
 def cost_gather(D, DP):
     """Indexed read of one D-vector from a codebook, DP elements/cycle."""
-    cycles = ceil_div(D, DP)
-    res = Resources(lut=DP)              # addressing / muxing
+    cycles = ceil_div(D, DP) + PIPE_FILL
+    res = Resources(lut=DP) + _OH_GATHER   # datapath muxing + control/interface overhead
     return cycles, res
 
 
@@ -64,6 +75,7 @@ def cost_similarity(D, K, DP, CP, family, elem_bits, sim_bits):
     lane = mac_lane(family, elem_bits, sim_bits)
     res = lane.scale(CP * DP)
     res = res + compare_lane(sim_bits).scale(CP)     # per-class argmin/argmax
+    res = res + _OH_SIMILARITY                        # argmin control + interface (fitted)
     return cycles, res
 
 
