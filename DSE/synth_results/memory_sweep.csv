@@ -1,0 +1,8 @@
+config,memory_space,banking,BRAM18K,URAM,DSP,FF,LUT,total_lat,read_lat,status
+bram_dp1,bram,1,8,0,0,90,341,132103,1026,ok
+bram_dp2,bram,2,8,0,0,76,299,131591,514,ok
+bram_dp4,bram,4,8,0,0,75,353,131335,258,ok
+bram_dp8,bram,8,8,0,0,74,461,131207,130,ok
+offchip,offchip,,3,0,0,995,1367,2065,1026,ok
+uram_dp1,uram,1,0,32,0,78,358,132103,1026,ok
+uram_dp4,uram,4,0,32,0,75,372,131335,258,ok
