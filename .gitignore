@@ -9,6 +9,9 @@ _ide/
 _x/
 vivado*.backup.*
 hls_config.cfg~
+pnr_*/
+clockInfo.txt
+dfx_runtime.txt
 
 # Vitis Unified IDE workspace metadata
 .metadata/

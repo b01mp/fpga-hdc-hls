@@ -21,14 +21,26 @@
 #include "aggregation/threshold.hpp"
 #include "search/similarity_search.hpp"
 
-// First application-level DSE candidate. Keep these concrete so Vitis HLS has a
-// fixed synthesis top; later candidates can change the constants or use wrappers.
+// First application-level DSE candidate. Defaults stay concrete so Vitis HLS has
+// a fixed synthesis top, while TCL scripts may override parallelism with -D.
+#ifndef APP_D
 #define APP_D  256  // hypervector dimension
+#endif
+#ifndef APP_F
 #define APP_F  16   // number of input features / position hypervectors
+#endif
+#ifndef APP_L
 #define APP_L  8    // number of quantized value levels
+#endif
+#ifndef APP_K
 #define APP_K  10   // number of class prototypes
+#endif
+#ifndef APP_DP
 #define APP_DP 8    // dimension parallelism
+#endif
+#ifndef APP_CP
 #define APP_CP 2    // class parallelism in similarity search
+#endif
 
 typedef ap_uint<5>  app_acc_t;  // ceil(log2(APP_F + 1)); represents 0..16
 typedef ap_int<32>  app_sim_t;  // Hamming-distance accumulator

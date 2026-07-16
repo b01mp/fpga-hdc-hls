@@ -11,10 +11,18 @@
 
 #include "common/hdc_types.hpp"
 
+#ifndef APP_D
 #define APP_D  256
+#endif
+#ifndef APP_F
 #define APP_F  16
+#endif
+#ifndef APP_L
 #define APP_L  8
+#endif
+#ifndef APP_K
 #define APP_K  10
+#endif
 
 int image_classification_top(
     const hdc::binary_t feature_codebook[APP_F][APP_D],

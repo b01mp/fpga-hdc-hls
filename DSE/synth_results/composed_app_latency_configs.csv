@@ -1,0 +1,5 @@
+app,rank,config_name,SEQ_DP,SEQ_CP,TRAIN_DP,TRAIN_CP,datatype,memory_space,banking,estimated_latency_cycles,clock_ns,estimated_latency_us,dse_basis
+sequence,1,best_latency,8,2,,,binary,bram,1,988,10,9.88,"6*(gather34+permute34+bundle34)+threshold35+similarity341"
+sequence,2,second_best_latency,4,1,,,binary,bram,1,1872,10,18.72,"6*(gather66+permute66+bundle66)+threshold66+similarity618"
+train,1,best_latency,,,8,2,binary,bram,1,10660,10,106.60,"8*encode1131+4*threshold35+encode1131+similarity341; encode=8*(gather34+gather34+bind35+bundle34)+threshold35"
+train,2,second_best_latency,,,4,1,binary,bram,1,20484,10,204.84,"8*encode2178+4*threshold66+encode2178+similarity618; encode=8*(gather66+gather66+bind66+bundle66)+threshold66"

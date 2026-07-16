@@ -1,0 +1,71 @@
+{
+  "source": "DSE/synth_results/master_table.csv",
+  "note": "Latency is composed from characterized primitive latencies, not measured from the composed top csynth reports.",
+  "clock_ns": 10,
+  "applications": {
+    "sequence": [
+      {
+        "rank": 1,
+        "config_name": "best_latency",
+        "env": {
+          "HDC_APP": "sequence",
+          "HDC_SEQ_DP": 8,
+          "HDC_SEQ_CP": 2
+        },
+        "datatype": "binary",
+        "memory_space": "bram",
+        "banking": 1,
+        "estimated_latency_cycles": 988,
+        "estimated_latency_us": 9.88,
+        "dse_basis": "6*(gather34+permute34+bundle34)+threshold35+similarity341"
+      },
+      {
+        "rank": 2,
+        "config_name": "second_best_latency",
+        "env": {
+          "HDC_APP": "sequence",
+          "HDC_SEQ_DP": 4,
+          "HDC_SEQ_CP": 1
+        },
+        "datatype": "binary",
+        "memory_space": "bram",
+        "banking": 1,
+        "estimated_latency_cycles": 1872,
+        "estimated_latency_us": 18.72,
+        "dse_basis": "6*(gather66+permute66+bundle66)+threshold66+similarity618"
+      }
+    ],
+    "train": [
+      {
+        "rank": 1,
+        "config_name": "best_latency",
+        "env": {
+          "HDC_APP": "train",
+          "HDC_TRAIN_DP": 8,
+          "HDC_TRAIN_CP": 2
+        },
+        "datatype": "binary",
+        "memory_space": "bram",
+        "banking": 1,
+        "estimated_latency_cycles": 10660,
+        "estimated_latency_us": 106.6,
+        "dse_basis": "8*encode1131+4*threshold35+encode1131+similarity341; encode=8*(gather34+gather34+bind35+bundle34)+threshold35"
+      },
+      {
+        "rank": 2,
+        "config_name": "second_best_latency",
+        "env": {
+          "HDC_APP": "train",
+          "HDC_TRAIN_DP": 4,
+          "HDC_TRAIN_CP": 1
+        },
+        "datatype": "binary",
+        "memory_space": "bram",
+        "banking": 1,
+        "estimated_latency_cycles": 20484,
+        "estimated_latency_us": 204.84,
+        "dse_basis": "8*encode2178+4*threshold66+encode2178+similarity618; encode=8*(gather66+gather66+bind66+bundle66)+threshold66"
+      }
+    ]
+  }
+}
