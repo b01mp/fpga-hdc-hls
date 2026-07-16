@@ -1,4 +1,4 @@
-# U280 Validation Plan
+# U280 Validation Requirements and Run Plan
 
 ## Current status
 
@@ -12,6 +12,35 @@
   `xcvu37p-fsvh2892-2L-e`.
 - Local Vivado P&R for the U280 underlying part is currently blocked by the
   missing `xcvu37p` synthesis/implementation license.
+- The same four composed application configurations have been locally verified
+  with:
+  - U280-target HLS synthesis
+  - local out-of-context quick P&R on `xcu55c-fsvh2892-2L-e`
+- The local P&R sanity results are saved in:
+  - `DSE/synth_results/composed_app_actual_reports.csv`
+
+## Server requirement
+
+The next required validation step is to rerun direct Vivado P&R on a server that
+has a valid U280 synthesis/implementation license.
+
+The server environment should satisfy the following:
+
+- Vivado/Vitis can recognize the U280 part:
+  `xcu280-fsvh2892-2L-e`
+- Vivado license checkout succeeds for synthesis:
+  `Got license for feature 'Synthesis' and/or device 'xcu280'`
+- Vivado license checkout succeeds for implementation:
+  `Got license for feature 'Implementation' and/or device 'xcu280'`
+- Recommended tool version: Vivado/Vitis 2023.1, or another version on the
+  server that can recognize `xcu280-fsvh2892-2L-e`.
+- If using the U280 platform flow later, the server should also have a matching
+  U280 platform installed, for example:
+  `xilinx_u280_gen3x16_xdma_1_202211_1`
+
+For the current goal, the `.xpfm` platform is not required. The goal is direct
+out-of-context implementation validation for the U280 FPGA part, not packaging
+a deployable Vitis accelerator.
 
 ## Saved DSE configurations
 
@@ -25,49 +54,98 @@ The saved configurations are composed from existing primitive DSE measurements.
 They should be treated as DSE-predicted candidates until each composed top is
 confirmed by HLS synthesis and P&R.
 
-## Immediate next steps on a licensed machine
+## Immediate next steps on the licensed U280 server
 
-1. Clone this branch on a machine with a valid Vivado license for
-   `xcvu37p-fsvh2892-2L-e`.
-2. Run HLS synthesis for the selected composed application candidates:
+1. Clone this branch:
 
-   ```powershell
-   cd D:\Project\Vitis\fpga-hdc-hls
-
-   $env:HDC_PART='xcvu37p-fsvh2892-2L-e'
-   $env:HDC_CLOCK_NS='10'
-   $env:HDC_APP='sequence'
-   $env:HDC_SEQ_DP='8'
-   $env:HDC_SEQ_CP='2'
-   & 'D:\AMD\2025.2\Vitis\bin\vitis-run.bat' --mode hls --tcl scripts/run_composed_app_hls.tcl
-
-   $env:HDC_APP='train'
-   $env:HDC_TRAIN_DP='8'
-   $env:HDC_TRAIN_CP='2'
-   & 'D:\AMD\2025.2\Vitis\bin\vitis-run.bat' --mode hls --tcl scripts/run_composed_app_hls.tcl
+   ```bash
+   git clone -b haoyang_DSE https://github.com/b01mp/fpga-hdc-hls.git
+   cd fpga-hdc-hls
    ```
 
-3. Run direct Vivado P&R for each synthesized composed top:
+2. Source the server tool environment. Example:
 
-   ```powershell
-   $env:HDC_PART='xcvu37p-fsvh2892-2L-e'
-   $env:HDC_CLOCK_NS='10'
-
-   $env:HDC_APP='sequence'
-   & 'D:\AMD\2025.2\Vivado\bin\vivado.bat' -mode batch -source scripts/direct_composed_app_pnr.tcl
-
-   $env:HDC_APP='train'
-   & 'D:\AMD\2025.2\Vivado\bin\vivado.bat' -mode batch -source scripts/direct_composed_app_pnr.tcl
+   ```bash
+   source /tools/Xilinx/Vitis/2023.1/settings64.sh
    ```
 
-4. Collect the generated timing, utilization, and route-status reports under
-   `pnr_sequence/reports` and `pnr_train/reports`.
+3. Confirm that Vivado can see the U280 part:
+
+   ```bash
+   vivado -mode batch -nolog -nojournal -notrace \
+     -source <(echo 'create_project -in_memory -part xcu280-fsvh2892-2L-e; close_project')
+   ```
+
+4. Run HLS synthesis and direct P&R for the four DSE-selected configurations.
+
+   Sequence, best latency:
+
+   ```bash
+   export HDC_PART=xcu280-fsvh2892-2L-e
+   export HDC_CLOCK_NS=10
+   export HDC_APP=sequence
+   export HDC_CONFIG_NAME=best_latency
+   export HDC_SEQ_DP=8
+   export HDC_SEQ_CP=2
+   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
+   vivado -mode batch -source scripts/direct_composed_app_pnr.tcl
+   ```
+
+   Sequence, second-best latency:
+
+   ```bash
+   export HDC_PART=xcu280-fsvh2892-2L-e
+   export HDC_CLOCK_NS=10
+   export HDC_APP=sequence
+   export HDC_CONFIG_NAME=second_best_latency
+   export HDC_SEQ_DP=4
+   export HDC_SEQ_CP=1
+   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
+   vivado -mode batch -source scripts/direct_composed_app_pnr.tcl
+   ```
+
+   Train, best latency:
+
+   ```bash
+   export HDC_PART=xcu280-fsvh2892-2L-e
+   export HDC_CLOCK_NS=10
+   export HDC_APP=train
+   export HDC_CONFIG_NAME=best_latency
+   export HDC_TRAIN_DP=8
+   export HDC_TRAIN_CP=2
+   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
+   vivado -mode batch -source scripts/direct_composed_app_pnr.tcl
+   ```
+
+   Train, second-best latency:
+
+   ```bash
+   export HDC_PART=xcu280-fsvh2892-2L-e
+   export HDC_CLOCK_NS=10
+   export HDC_APP=train
+   export HDC_CONFIG_NAME=second_best_latency
+   export HDC_TRAIN_DP=4
+   export HDC_TRAIN_CP=1
+   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
+   vivado -mode batch -source scripts/direct_composed_app_pnr.tcl
+   ```
+
+5. Collect the generated reports:
+
+   - `proj_app_sequence_best_latency/sol1/syn/report/`
+   - `proj_app_sequence_second_best_latency/sol1/syn/report/`
+   - `proj_app_train_best_latency/sol1/syn/report/`
+   - `proj_app_train_second_best_latency/sol1/syn/report/`
+   - `pnr_sequence_best_latency/reports/`
+   - `pnr_sequence_second_best_latency/reports/`
+   - `pnr_train_best_latency/reports/`
+   - `pnr_train_second_best_latency/reports/`
 
 ## Success criteria
 
 - HLS C-simulation passes.
 - HLS synthesis generates RTL for the selected composition.
-- Vivado implementation completes for `xcvu37p-fsvh2892-2L-e`.
+- Vivado implementation completes for `xcu280-fsvh2892-2L-e`.
 - Route status reports show no routing errors.
 - Timing summary shows non-negative WNS at the target clock, or clearly reports
   the margin if the target needs adjustment.
@@ -77,6 +155,12 @@ confirmed by HLS synthesis and P&R.
 ## Notes
 
 This plan verifies that the composed HDC kernels can be implemented for the U280
-underlying FPGA part. It does not require running on the physical U280 board.
+FPGA part. It does not require running on the physical U280 board.
+
 Full Vitis platform linking with a U280 `.xpfm` is only needed if the goal
 changes from implementation validation to deployable accelerator packaging.
+
+The local Windows run already showed that the designs pass C-simulation, produce
+U280-target HLS RTL, and can be placed/routed on a locally licensed Alveo-class
+device. The server run is needed to replace the local P&R sanity check with the
+actual U280 part implementation report.
