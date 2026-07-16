@@ -16,6 +16,7 @@
 #   HDC_CLOCK_NS   default 10
 #   HDC_CSIM_ONLY  if 1, run csim only
 #   HDC_SKIP_CSIM  if 1, skip csim and run csynth only
+#   HDC_CONFIG_NAME optional suffix for keeping per-config projects separate
 #   HDC_*_DP/CP    app-specific parallelism overrides, see CFLAGS below
 # =============================================================================
 
@@ -43,6 +44,10 @@ if {[info exists ::env(HDC_SKIP_CSIM)] && $::env(HDC_SKIP_CSIM) ne ""} {
 }
 
 set CFLAGS "-I./include"
+set CONFIG_NAME ""
+if {[info exists ::env(HDC_CONFIG_NAME)] && $::env(HDC_CONFIG_NAME) ne ""} {
+    set CONFIG_NAME $::env(HDC_CONFIG_NAME)
+}
 
 if {$APP eq "image"} {
     set PROJECT proj_app_image
@@ -81,7 +86,12 @@ if {$APP eq "image"} {
     error "Unknown HDC_APP '$APP'. Use image, sequence, or train."
 }
 
+if {$CONFIG_NAME ne ""} {
+    append PROJECT "_$CONFIG_NAME"
+}
+
 puts "Composed app: $APP"
+puts "Config: $CONFIG_NAME"
 puts "Project: $PROJECT"
 puts "Top: $TOP"
 puts "Target part: $PART"

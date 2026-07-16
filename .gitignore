@@ -5,6 +5,8 @@ proj_*/
 *.jou
 *.str
 .Xil/
+.xilinx_local_user_data/
+.vivado_appdata/
 _ide/
 _x/
 vivado*.backup.*

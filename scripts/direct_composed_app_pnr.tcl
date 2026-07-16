@@ -13,6 +13,7 @@
 #   HDC_APP        image | sequence | train       default image
 #   HDC_PART       default xcu55c-fsvh2892-2L-e
 #   HDC_CLOCK_NS   default 10
+#   HDC_CONFIG_NAME optional suffix matching the HLS project suffix
 # =============================================================================
 
 set APP image
@@ -28,6 +29,10 @@ if {[info exists ::env(HDC_PART)] && $::env(HDC_PART) ne ""} {
 if {[info exists ::env(HDC_CLOCK_NS)] && $::env(HDC_CLOCK_NS) ne ""} {
     set CLK $::env(HDC_CLOCK_NS)
 }
+set CONFIG_NAME ""
+if {[info exists ::env(HDC_CONFIG_NAME)] && $::env(HDC_CONFIG_NAME) ne ""} {
+    set CONFIG_NAME $::env(HDC_CONFIG_NAME)
+}
 
 if {$APP eq "image"} {
     set PROJECT proj_app_image
@@ -42,14 +47,23 @@ if {$APP eq "image"} {
     error "Unknown HDC_APP '$APP'. Use image, sequence, or train."
 }
 
+if {$CONFIG_NAME ne ""} {
+    append PROJECT "_$CONFIG_NAME"
+}
+
 set RTL_DIR "$PROJECT/sol1/syn/verilog"
-set OUT_DIR "pnr_${APP}"
+if {$CONFIG_NAME ne ""} {
+    set OUT_DIR "pnr_${APP}_${CONFIG_NAME}"
+} else {
+    set OUT_DIR "pnr_${APP}"
+}
 set RPT_DIR "$OUT_DIR/reports"
 
 file mkdir $OUT_DIR
 file mkdir $RPT_DIR
 
 puts "Direct P&R app: $APP"
+puts "Config: $CONFIG_NAME"
 puts "Top: $TOP"
 puts "Target part: $PART"
 puts "Clock: $CLK ns"
