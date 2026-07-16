@@ -1,5 +1,0 @@
-app,config_name,target_hls_part,hls_dp,hls_cp,hls_latency_cycles,hls_latency_us,hls_estimated_clock_ns,hls_estimated_fmax_mhz,hls_lut,hls_ff,hls_dsp,hls_bram18k,hls_uram,pnr_part,pnr_wns_ns,pnr_whs_ns,pnr_lut,pnr_ff,pnr_dsp,pnr_bram_tile,pnr_uram,fully_routed_nets,routing_errors,report_dir
-sequence,best_latency,xcvu37p-fsvh2892-2L-e,8,2,512,5.120,3.175,314.96,4369,567,0,0,0,xcu55c-fsvh2892-2L-e,7.491,0.036,486,408,0,0,0,895,0,pnr_sequence_best_latency/reports
-sequence,second_best_latency,xcvu37p-fsvh2892-2L-e,4,1,863,8.630,3.323,300.93,2276,354,0,0,0,xcu55c-fsvh2892-2L-e,7.576,0.015,253,196,0,0,0,417,0,pnr_sequence_second_best_latency/reports
-train,best_latency,xcvu37p-fsvh2892-2L-e,8,2,5095,50.950,3.175,314.96,10623,1114,0,0,0,xcu55c-fsvh2892-2L-e,7.346,0.019,804,855,0,0,0,1692,0,pnr_train_best_latency/reports
-train,second_best_latency,xcvu37p-fsvh2892-2L-e,4,1,9062,90.620,3.323,300.93,5194,740,0,0,0,xcu55c-fsvh2892-2L-e,7.460,0.037,654,527,0,0,0,1052,0,pnr_train_second_best_latency/reports

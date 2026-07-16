@@ -1,0 +1,7 @@
+app,rank,config_name,APP_DP,APP_CP,TS_DP,TS_CP,GEN_DP,GEN_CP,datatype,memory_space,banking,status,notes
+image,1,best_latency,256,10,,,,,binary,bram,1,candidate_only,"paper application: image classification; feature/value binding + class prototype search"
+image,2,second_best_latency,128,5,,,,,binary,bram,1,candidate_only,"lower-parallelism image reference point"
+time_series,1,best_latency,,,8,2,,,binary,bram,1,candidate_only,"paper application: time-series classification; ordered window + prototype search"
+time_series,2,second_best_latency,,,4,1,,,binary,bram,1,candidate_only,"lower-parallelism time-series reference point"
+genome,1,best_latency,,,,,8,2,binary,bram,1,candidate_only,"paper application: genome-sequence search; ordered DNA window + reference search"
+genome,2,second_best_latency,,,,,4,1,binary,bram,1,candidate_only,"lower-parallelism genome reference point"

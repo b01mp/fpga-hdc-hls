@@ -3,14 +3,14 @@
 # Direct Vivado P&R for one HLS-generated composed application RTL directory.
 #
 # Run HLS first:
-#   $env:HDC_APP='sequence'
+#   $env:HDC_APP='time_series'
 #   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
 #
 # Then P&R:
 #   vivado -mode batch -source scripts/direct_composed_app_pnr.tcl
 #
 # Optional environment overrides:
-#   HDC_APP        image | sequence | train       default image
+#   HDC_APP        image | time_series | genome   default image
 #   HDC_PART       default xcu55c-fsvh2892-2L-e
 #   HDC_CLOCK_NS   default 10
 #   HDC_CONFIG_NAME optional suffix matching the HLS project suffix
@@ -38,13 +38,17 @@ if {$APP eq "image"} {
     set PROJECT proj_app_image
     set TOP image_classification_top
 } elseif {$APP eq "sequence"} {
-    set PROJECT proj_app_sequence
-    set TOP sequence_classification_top
+    error "HDC_APP='sequence' has been renamed to 'time_series'."
+} elseif {$APP eq "time_series"} {
+    set PROJECT proj_app_time_series
+    set TOP time_series_classification_top
 } elseif {$APP eq "train"} {
-    set PROJECT proj_app_train
-    set TOP train_infer_top
+    error "HDC_APP='train' is not one of the paper applications."
+} elseif {$APP eq "genome"} {
+    set PROJECT proj_app_genome
+    set TOP genome_sequence_search_top
 } else {
-    error "Unknown HDC_APP '$APP'. Use image, sequence, or train."
+    error "Unknown HDC_APP '$APP'. Use image, time_series, or genome."
 }
 
 if {$CONFIG_NAME ne ""} {

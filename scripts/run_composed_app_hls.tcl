@@ -3,15 +3,15 @@
 # C-simulate and C-synthesize one composed application top.
 #
 # Examples:
-#   $env:HDC_APP='sequence'
+#   $env:HDC_APP='time_series'
 #   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
 #
-#   $env:HDC_APP='train'
+#   $env:HDC_APP='genome'
 #   $env:HDC_CSIM_ONLY='1'
 #   vitis-run --mode hls --tcl scripts/run_composed_app_hls.tcl
 #
 # Optional environment overrides:
-#   HDC_APP        image | sequence | train       default image
+#   HDC_APP        image | time_series | genome   default image
 #   HDC_PART       default xcu55c-fsvh2892-2L-e
 #   HDC_CLOCK_NS   default 10
 #   HDC_CSIM_ONLY  if 1, run csim only
@@ -61,29 +61,33 @@ if {$APP eq "image"} {
         append CFLAGS " -DAPP_CP=$::env(HDC_APP_CP)"
     }
 } elseif {$APP eq "sequence"} {
-    set PROJECT proj_app_sequence
-    set TOP sequence_classification_top
-    set SRC src/top_sequence.cpp
-    set TB tb/tb_sequence.cpp
-    if {[info exists ::env(HDC_SEQ_DP)] && $::env(HDC_SEQ_DP) ne ""} {
-        append CFLAGS " -DSEQ_DP=$::env(HDC_SEQ_DP)"
+    error "HDC_APP='sequence' has been renamed to 'time_series'."
+} elseif {$APP eq "time_series"} {
+    set PROJECT proj_app_time_series
+    set TOP time_series_classification_top
+    set SRC src/top_time_series.cpp
+    set TB tb/tb_time_series.cpp
+    if {[info exists ::env(HDC_TS_DP)] && $::env(HDC_TS_DP) ne ""} {
+        append CFLAGS " -DTS_DP=$::env(HDC_TS_DP)"
     }
-    if {[info exists ::env(HDC_SEQ_CP)] && $::env(HDC_SEQ_CP) ne ""} {
-        append CFLAGS " -DSEQ_CP=$::env(HDC_SEQ_CP)"
+    if {[info exists ::env(HDC_TS_CP)] && $::env(HDC_TS_CP) ne ""} {
+        append CFLAGS " -DTS_CP=$::env(HDC_TS_CP)"
     }
 } elseif {$APP eq "train"} {
-    set PROJECT proj_app_train
-    set TOP train_infer_top
-    set SRC src/top_train.cpp
-    set TB tb/tb_train.cpp
-    if {[info exists ::env(HDC_TRAIN_DP)] && $::env(HDC_TRAIN_DP) ne ""} {
-        append CFLAGS " -DTRAIN_DP=$::env(HDC_TRAIN_DP)"
+    error "HDC_APP='train' is not one of the paper applications."
+} elseif {$APP eq "genome"} {
+    set PROJECT proj_app_genome
+    set TOP genome_sequence_search_top
+    set SRC src/top_genome.cpp
+    set TB tb/tb_genome.cpp
+    if {[info exists ::env(HDC_GEN_DP)] && $::env(HDC_GEN_DP) ne ""} {
+        append CFLAGS " -DGEN_DP=$::env(HDC_GEN_DP)"
     }
-    if {[info exists ::env(HDC_TRAIN_CP)] && $::env(HDC_TRAIN_CP) ne ""} {
-        append CFLAGS " -DTRAIN_CP=$::env(HDC_TRAIN_CP)"
+    if {[info exists ::env(HDC_GEN_CP)] && $::env(HDC_GEN_CP) ne ""} {
+        append CFLAGS " -DGEN_CP=$::env(HDC_GEN_CP)"
     }
 } else {
-    error "Unknown HDC_APP '$APP'. Use image, sequence, or train."
+    error "Unknown HDC_APP '$APP'. Use image, time_series, or genome."
 }
 
 if {$CONFIG_NAME ne ""} {

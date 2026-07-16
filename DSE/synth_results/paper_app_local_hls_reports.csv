@@ -1,0 +1,4 @@
+app,top,part,DP,CP,latency_cycles,latency_us,estimated_fmax_mhz,LUT,FF,DSP,BRAM18K,URAM,status,report_dir
+image,image_classification_top,xcu55c-fsvh2892-2L-e,8,2,2149,21.490,313.97,3969,506,0,0,0,local_hls_synthesis_smoke,proj_app_image/sol1/syn/report
+time_series,time_series_classification_top,xcu55c-fsvh2892-2L-e,8,2,513,5.130,314.96,4389,570,0,0,0,local_hls_synthesis_smoke,proj_app_time_series/sol1/syn/report
+genome,genome_sequence_search_top,xcu55c-fsvh2892-2L-e,8,2,635,6.350,314.96,4403,455,0,0,0,local_hls_synthesis_smoke,proj_app_genome/sol1/syn/report
