@@ -2,6 +2,10 @@
 
 ## Current status
 
+The completed 250 MHz place-and-route measurements and timing verdicts are
+reported in [`u280_pnr_results.md`](u280_pnr_results.md). The machine-readable
+summary is in `DSE/synth_results/u280_pnr_results.csv`.
+
 - The paper-defined application set is:
   - `image_classification_top`
   - `time_series_classification_top`

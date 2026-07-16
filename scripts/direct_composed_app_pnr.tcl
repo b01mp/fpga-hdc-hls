@@ -14,6 +14,7 @@
 #   HDC_PART       default xcu55c-fsvh2892-2L-e
 #   HDC_CLOCK_NS   default 10
 #   HDC_CONFIG_NAME optional suffix matching the HLS project suffix
+#   HDC_PNR_LABEL  optional output suffix (for example, 250mhz)
 # =============================================================================
 
 set APP image
@@ -32,6 +33,10 @@ if {[info exists ::env(HDC_CLOCK_NS)] && $::env(HDC_CLOCK_NS) ne ""} {
 set CONFIG_NAME ""
 if {[info exists ::env(HDC_CONFIG_NAME)] && $::env(HDC_CONFIG_NAME) ne ""} {
     set CONFIG_NAME $::env(HDC_CONFIG_NAME)
+}
+set PNR_LABEL ""
+if {[info exists ::env(HDC_PNR_LABEL)] && $::env(HDC_PNR_LABEL) ne ""} {
+    set PNR_LABEL $::env(HDC_PNR_LABEL)
 }
 
 if {$APP eq "image"} {
@@ -60,6 +65,9 @@ if {$CONFIG_NAME ne ""} {
     set OUT_DIR "pnr_${APP}_${CONFIG_NAME}"
 } else {
     set OUT_DIR "pnr_${APP}"
+}
+if {$PNR_LABEL ne ""} {
+    append OUT_DIR "_$PNR_LABEL"
 }
 set RPT_DIR "$OUT_DIR/reports"
 
