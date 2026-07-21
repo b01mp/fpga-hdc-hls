@@ -36,6 +36,20 @@ include/
 src/                          concrete top wrappers (set_top / synth entry per category)
 tb/                           per-category C-sim testbenches
 scripts/run_hls.tcl          C-sim runner (one project per category)
+python_hdc/                  Python-style HDC API capture + HLS template registry
+```
+
+## Python API to HLS template flow
+
+The `python_hdc/` package provides a lightweight front end for application
+composition. It is not an arbitrary Python compiler; users call the supported
+HDC API functions, and each function is explicitly registered to one or more
+HLS templates in this library. The captured typed graph can then be lowered to a
+DSE-facing JSON specification.
+
+```bash
+python -m python_hdc.examples.image_classification --output build/image_classification_dse.json
+python -m unittest discover -s tests
 ```
 
 ## Function status
