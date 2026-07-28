@@ -436,6 +436,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-classes", type=int, default=10)
     parser.add_argument("--warmup", type=int, default=20)
     parser.add_argument("--repeat", type=int, default=100)
+    parser.add_argument(
+        "--torch-threads",
+        type=int,
+        default=None,
+        help="Set torch CPU intra-op and inter-op thread counts for stable CPU latency.",
+    )
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
         "--output",
@@ -447,6 +453,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.torch_threads is not None:
+        torch.set_num_threads(args.torch_threads)
+        torch.set_num_interop_threads(args.torch_threads)
     rows = run_suite(
         devices=parse_devices(args.device),
         mode=args.mode,

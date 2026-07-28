@@ -16,6 +16,13 @@ mapping and banking. Those knobs are evaluated on the FPGA side.
 python -m baselines.hdc_cpu_gpu_baseline --device all --mode all
 ```
 
+For small HDC tensors on a large server, pinning PyTorch to one or a few CPU
+threads avoids thread-launch overhead dominating the measurement:
+
+```bash
+python -m baselines.hdc_cpu_gpu_baseline --device cpu --mode application --torch-threads 1
+```
+
 The script writes:
 
 ```text
