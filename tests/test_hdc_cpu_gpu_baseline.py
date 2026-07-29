@@ -42,6 +42,9 @@ class BinaryHdcBaselineTest(unittest.TestCase):
         pred = baseline.similarity_search(query, prototypes)
         self.assertEqual(int(pred.item()), 1)
 
+        permuted = baseline.permute(torch.tensor([1, 0, 0, 1], dtype=torch.bool), shift=1)
+        self.assertTrue(torch.equal(permuted, torch.tensor([1, 1, 0, 0], dtype=torch.bool)))
+
     def test_image_classification_path_is_deterministic(self):
         inputs = baseline.make_inputs(
             device=torch.device("cpu"),
@@ -58,12 +61,43 @@ class BinaryHdcBaselineTest(unittest.TestCase):
         self.assertGreaterEqual(int(first.item()), 0)
         self.assertLess(int(first.item()), 3)
 
+    def test_ordered_application_paths_are_deterministic(self):
+        ts_inputs = baseline.make_ordered_inputs(
+            device=torch.device("cpu"),
+            hv_dim=64,
+            window_size=6,
+            vocab_size=12,
+            num_references=4,
+            seed=13,
+        )
+        genome_inputs = baseline.make_ordered_inputs(
+            device=torch.device("cpu"),
+            hv_dim=64,
+            window_size=8,
+            vocab_size=4,
+            num_references=6,
+            seed=17,
+        )
+
+        ts_first = baseline.time_series_classification(ts_inputs)
+        ts_second = baseline.time_series_classification(ts_inputs)
+        genome_first = baseline.genome_sequence_search(genome_inputs)
+        genome_second = baseline.genome_sequence_search(genome_inputs)
+
+        self.assertEqual(int(ts_first.item()), int(ts_second.item()))
+        self.assertGreaterEqual(int(ts_first.item()), 0)
+        self.assertLess(int(ts_first.item()), 4)
+        self.assertEqual(int(genome_first.item()), int(genome_second.item()))
+        self.assertGreaterEqual(int(genome_first.item()), 0)
+        self.assertLess(int(genome_first.item()), 6)
+
     def test_runner_writes_expected_csv_columns(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             out_csv = Path(tmpdir) / "baseline.csv"
             rows = baseline.run_suite(
                 devices=[torch.device("cpu")],
                 mode="all",
+                application="all",
                 hv_dim=32,
                 num_features=4,
                 num_levels=4,
@@ -75,7 +109,7 @@ class BinaryHdcBaselineTest(unittest.TestCase):
             )
 
             self.assertTrue(out_csv.exists())
-            self.assertGreaterEqual(len(rows), 6)
+            self.assertGreaterEqual(len(rows), 8)
 
             with out_csv.open(newline="") as f:
                 reader = csv.DictReader(f)
@@ -86,6 +120,14 @@ class BinaryHdcBaselineTest(unittest.TestCase):
             self.assertIn("latency_mean_us", parsed[0])
             self.assertIn("power_source", parsed[0])
             self.assertEqual({row["backend"] for row in parsed}, {"cpu"})
+            self.assertEqual(
+                {row["application"] for row in parsed if row["mode"] == "application"},
+                {
+                    "image_classification",
+                    "time_series_classification",
+                    "genome_sequence_search",
+                },
+            )
 
 
 if __name__ == "__main__":

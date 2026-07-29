@@ -2,7 +2,7 @@
 """PyTorch CPU/GPU baseline for the binary FPGA HDC function path.
 
 The benchmark mirrors the baseline binary HLS functions:
-gather -> bind -> bundle -> threshold -> similarity_search.
+gather -> bind/permute -> bundle -> threshold -> similarity_search.
 FPGA-specific memory-placement knobs such as BRAM/URAM/HBM banking are excluded.
 """
 
@@ -54,6 +54,13 @@ class BenchmarkInputs:
 
 
 @dataclass(frozen=True)
+class OrderedWindowInputs:
+    symbol_codebook: torch.Tensor
+    symbol_indices: torch.Tensor
+    references: torch.Tensor
+
+
+@dataclass(frozen=True)
 class PowerResult:
     power_w: float | None
     energy_uj: float | None
@@ -68,6 +75,13 @@ def gather(codebook: torch.Tensor, index: torch.Tensor | int) -> torch.Tensor:
 def bind(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """Binary HDC binding: XOR over {0, 1}."""
     return torch.logical_xor(a.bool(), b.bool())
+
+
+def permute(hv: torch.Tensor, shift: int) -> torch.Tensor:
+    """Cyclic rotation matching include/encoding/permute.hpp."""
+    if hv.numel() == 0:
+        return hv
+    return torch.roll(hv, shifts=int(shift) % int(hv.shape[-1]), dims=-1)
 
 
 def bundle(hvs: torch.Tensor) -> torch.Tensor:
@@ -101,6 +115,29 @@ def image_classification(inputs: BenchmarkInputs) -> torch.Tensor:
     return similarity_search(query, inputs.prototypes)
 
 
+def ordered_window_query(inputs: OrderedWindowInputs) -> torch.Tensor:
+    """Shared time-series/genome encoder: gather -> permute -> bundle -> threshold."""
+    symbol_hvs = gather(inputs.symbol_codebook, inputs.symbol_indices)
+    positional = torch.stack(
+        [permute(symbol_hvs[w], shift=w) for w in range(int(inputs.symbol_indices.numel()))],
+        dim=0,
+    )
+    acc = bundle(positional)
+    return threshold(acc, count=int(inputs.symbol_indices.numel()))
+
+
+def time_series_classification(inputs: OrderedWindowInputs) -> torch.Tensor:
+    """Time-series path: ordered-window query followed by prototype search."""
+    query = ordered_window_query(inputs)
+    return similarity_search(query, inputs.references)
+
+
+def genome_sequence_search(inputs: OrderedWindowInputs) -> torch.Tensor:
+    """Genome-search path: ordered-symbol query followed by reference search."""
+    query = ordered_window_query(inputs)
+    return similarity_search(query, inputs.references)
+
+
 def make_inputs(
     device: torch.device,
     hv_dim: int,
@@ -129,6 +166,31 @@ def make_inputs(
         feature_indices=feature_indices,
         value_indices=value_indices,
         prototypes=prototypes,
+    )
+
+
+def make_ordered_inputs(
+    device: torch.device,
+    hv_dim: int,
+    window_size: int,
+    vocab_size: int,
+    num_references: int,
+    seed: int,
+) -> OrderedWindowInputs:
+    generator = torch.Generator(device="cpu").manual_seed(seed)
+    symbol_codebook = torch.randint(
+        0, 2, (vocab_size, hv_dim), generator=generator, dtype=torch.bool
+    ).to(device)
+    references = torch.randint(
+        0, 2, (num_references, hv_dim), generator=generator, dtype=torch.bool
+    ).to(device)
+    symbol_indices = torch.randint(
+        0, vocab_size, (window_size,), generator=generator, dtype=torch.long
+    ).to(device)
+    return OrderedWindowInputs(
+        symbol_codebook=symbol_codebook,
+        symbol_indices=symbol_indices,
+        references=references,
     )
 
 
@@ -350,16 +412,67 @@ def make_row(
 def primitive_workloads(inputs: BenchmarkInputs) -> Iterable[tuple[str, Callable[[], torch.Tensor]]]:
     yield "gather", lambda: gather(inputs.feature_codebook, inputs.feature_indices[0])
     yield "bind", lambda: bind(inputs.feature_codebook[0], inputs.value_codebook[0])
+    yield "permute", lambda: permute(inputs.feature_codebook[0], shift=1)
     yield "bundle", lambda: bundle(inputs.feature_codebook)
     yield "threshold", lambda: threshold(bundle(inputs.feature_codebook), count=inputs.feature_indices.numel())
     query = threshold(bundle(inputs.feature_codebook), count=inputs.feature_indices.numel())
     yield "similarity_search", lambda: similarity_search(query, inputs.prototypes)
 
 
+def application_workloads(
+    device: torch.device,
+    application: str,
+    seed: int,
+    hv_dim: int,
+    num_features: int,
+    num_levels: int,
+    num_classes: int,
+) -> Iterable[tuple[str, int, int, int, int, Callable[[], torch.Tensor]]]:
+    if application in {"image", "image_classification", "all"}:
+        image_inputs = make_inputs(device, hv_dim, num_features, num_levels, num_classes, seed)
+        yield (
+            "image_classification",
+            hv_dim,
+            num_features,
+            num_levels,
+            num_classes,
+            lambda: image_classification(image_inputs),
+        )
+
+    if application in {"time_series", "time_series_classification", "all"}:
+        ts_hv_dim, ts_window, ts_vocab, ts_classes = 128, 6, 12, 4
+        ts_inputs = make_ordered_inputs(
+            device, ts_hv_dim, ts_window, ts_vocab, ts_classes, seed + 101
+        )
+        yield (
+            "time_series_classification",
+            ts_hv_dim,
+            ts_window,
+            ts_vocab,
+            ts_classes,
+            lambda: time_series_classification(ts_inputs),
+        )
+
+    if application in {"genome", "genome_sequence_search", "all"}:
+        gen_hv_dim, gen_window, gen_vocab, gen_refs = 128, 8, 4, 6
+        gen_inputs = make_ordered_inputs(
+            device, gen_hv_dim, gen_window, gen_vocab, gen_refs, seed + 202
+        )
+        yield (
+            "genome_sequence_search",
+            gen_hv_dim,
+            gen_window,
+            gen_vocab,
+            gen_refs,
+            lambda: genome_sequence_search(gen_inputs),
+        )
+
+
 def run_suite(
     *,
     devices: list[torch.device],
     mode: str,
+    application: str,
     hv_dim: int,
     num_features: int,
     num_levels: int,
@@ -390,22 +503,30 @@ def run_suite(
                     power=power,
                 ))
         if mode in {"application", "all"}:
-            latencies, power = measure_latency_us(lambda: image_classification(inputs),
-                                                  device, warmup, repeat)
-            rows.append(make_row(
+            for app_name, app_d, app_features, app_levels, app_classes, workload in application_workloads(
                 device=device,
-                mode="application",
-                function="",
-                application="image_classification",
+                application=application,
+                seed=seed,
                 hv_dim=hv_dim,
                 num_features=num_features,
                 num_levels=num_levels,
                 num_classes=num_classes,
-                warmup=warmup,
-                repeat=repeat,
-                latencies_us=latencies,
-                power=power,
-            ))
+            ):
+                latencies, power = measure_latency_us(workload, device, warmup, repeat)
+                rows.append(make_row(
+                    device=device,
+                    mode="application",
+                    function="",
+                    application=app_name,
+                    hv_dim=app_d,
+                    num_features=app_features,
+                    num_levels=app_levels,
+                    num_classes=app_classes,
+                    warmup=warmup,
+                    repeat=repeat,
+                    latencies_us=latencies,
+                    power=power,
+                ))
 
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="") as f:
@@ -430,6 +551,20 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", choices=["cpu", "cuda", "all"], default="all")
     parser.add_argument("--mode", choices=["primitive", "application", "all"], default="all")
+    parser.add_argument(
+        "--application",
+        choices=[
+            "image",
+            "image_classification",
+            "time_series",
+            "time_series_classification",
+            "genome",
+            "genome_sequence_search",
+            "all",
+        ],
+        default="image",
+        help="Application path to benchmark in application mode.",
+    )
     parser.add_argument("--hv-dim", type=int, default=256)
     parser.add_argument("--num-features", type=int, default=128)
     parser.add_argument("--num-levels", type=int, default=16)
@@ -459,6 +594,7 @@ def main() -> None:
     rows = run_suite(
         devices=parse_devices(args.device),
         mode=args.mode,
+        application=args.application,
         hv_dim=args.hv_dim,
         num_features=args.num_features,
         num_levels=args.num_levels,
