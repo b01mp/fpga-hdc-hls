@@ -21,15 +21,24 @@ namespace hdc {
 
 // proto_t = prototype datatype, K = num_prototypes, D = hv_dim.
 // threshold = max allowed changed-element count to declare convergence.
-template <typename proto_t, int K, int D>
+template <typename proto_t, int K, int D, int DP = 1, int CP = 1>
 bool convergence_check(const proto_t nw[K][D], const proto_t old[K][D],
                        long threshold = 0) {
+    #pragma HLS ARRAY_PARTITION variable=nw  type=cyclic factor=CP dim=1
+    #pragma HLS ARRAY_PARTITION variable=old type=cyclic factor=CP dim=1
+    #pragma HLS ARRAY_PARTITION variable=nw  type=cyclic factor=DP dim=2
+    #pragma HLS ARRAY_PARTITION variable=old type=cyclic factor=DP dim=2
     long changed = 0;
 CONV_ROW:
-    for (int k = 0; k < K; k++)
+    for (int k = 0; k < K; k++) {
+        #pragma HLS UNROLL factor=CP
     CONV_COL:
-        for (int i = 0; i < D; i++)
+        for (int i = 0; i < D; i++) {
+            #pragma HLS PIPELINE II=1
+            #pragma HLS UNROLL   factor=DP
             if (nw[k][i] != old[k][i]) changed++;
+        }
+    }
     return changed <= threshold;
 }
 

@@ -24,8 +24,24 @@
 
 namespace hdc {
 
-// elem_t = codebook datatype, D = hv_dim, L = num_levels.
-template <typename elem_t, int D, int L>
+// Map a binary flip-schedule bit to the family's element value. The schedule
+// tracks WHICH dimensions differ (binary by nature); the family only decides how
+// a 0/1 is represented. Binary keeps {0,1}; bipolar/fixed/integer use {-1,+1} so
+// the codebook is genuinely signed instead of a silently-cast {0,1}.
+template <typename elem_t>
+inline elem_t level_elem(int bitval, binary_tag)  { return (elem_t)bitval; }
+template <typename elem_t>
+inline elem_t level_elem(int bitval, bipolar_tag) { return bitval ? (elem_t)1 : (elem_t)(-1); }
+template <typename elem_t>
+inline elem_t level_elem(int bitval, fixed_tag)   { return bitval ? (elem_t)1 : (elem_t)(-1); }
+template <typename elem_t>
+inline elem_t level_elem(int bitval, integer_tag) { return bitval ? (elem_t)1 : (elem_t)(-1); }
+template <typename elem_t>
+inline elem_t level_elem(int bitval, pow2_tag)    { return bitval ? (elem_t)1 : (elem_t)(-1); }
+
+// elem_t = codebook datatype, D = hv_dim, L = num_levels, Family = datatype tag.
+// Family defaults to binary_tag, so every existing caller is unchanged.
+template <typename elem_t, int D, int L, typename Family = binary_tag>
 void gen_levels(elem_t level[L][D], level_mode_t mode = LEVEL_LINEAR, unsigned seed = 43u) {
     std::mt19937 rng(seed);
     std::uniform_int_distribution<int> bit(0, 1);
@@ -38,8 +54,8 @@ void gen_levels(elem_t level[L][D], level_mode_t mode = LEVEL_LINEAR, unsigned s
     std::shuffle(perm.begin(), perm.end(), rng);   // flip order (each bit flips once)
 
     std::vector<int> cur(D);
-    for (int i = 0; i < D; i++) cur[i] = bit(rng);         // level 0: random
-    for (int i = 0; i < D; i++) level[0][i] = (elem_t)cur[i];
+    for (int i = 0; i < D; i++) cur[i] = bit(rng);         // level 0: random bits
+    for (int i = 0; i < D; i++) level[0][i] = level_elem<elem_t>(cur[i], Family());
 
     const int flips_total = D / 2;
     const int per_step     = (L > 1) ? (flips_total / (L - 1)) : 0;
@@ -48,7 +64,7 @@ void gen_levels(elem_t level[L][D], level_mode_t mode = LEVEL_LINEAR, unsigned s
     for (int l = 1; l < L; l++) {
         for (int k = 0; k < per_step && p < D; k++, p++)
             cur[perm[p]] ^= 1;                             // flip a fresh distinct bit
-        for (int i = 0; i < D; i++) level[l][i] = (elem_t)cur[i];
+        for (int i = 0; i < D; i++) level[l][i] = level_elem<elem_t>(cur[i], Family());
     }
 }
 

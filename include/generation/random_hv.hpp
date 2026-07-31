@@ -22,14 +22,45 @@
 
 namespace hdc {
 
-// elem_t = codebook datatype, D = hv_dim, F = num_features.
-template <typename elem_t, int D, int F>
+// Per-family element draw -- selects, at COMPILE time (tag dispatch), the value
+// SET the codebook is drawn from. This is the generation-side of the datatype-
+// parametric story: previously every family drew bit(0,1) and cast, so a bipolar
+// codebook was silently {0,1} instead of {-1,+1}. Now each family draws its own
+// representation.
+template <typename elem_t>
+inline elem_t draw_elem(std::mt19937 &rng, binary_tag) {
+    std::uniform_int_distribution<int> b(0, 1);
+    return (elem_t)b(rng);                                 // {0, 1}
+}
+template <typename elem_t>
+inline elem_t draw_elem(std::mt19937 &rng, bipolar_tag) {
+    std::uniform_int_distribution<int> b(0, 1);
+    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // {-1, +1}
+}
+template <typename elem_t>
+inline elem_t draw_elem(std::mt19937 &rng, fixed_tag) {
+    std::uniform_int_distribution<int> b(0, 1);
+    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // ±1 base HV, fixed-point
+}
+template <typename elem_t>
+inline elem_t draw_elem(std::mt19937 &rng, integer_tag) {
+    std::uniform_int_distribution<int> b(0, 1);
+    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // ±1 base HV, integer
+}
+template <typename elem_t>
+inline elem_t draw_elem(std::mt19937 &rng, pow2_tag) {
+    std::uniform_int_distribution<int> b(0, 1);
+    return b(rng) ? (elem_t)1 : (elem_t)(-1);
+}
+
+// elem_t = codebook datatype, D = hv_dim, F = num_features, Family = datatype tag.
+// Family defaults to binary_tag, so every existing caller is unchanged.
+template <typename elem_t, int D, int F, typename Family = binary_tag>
 void random_hv(elem_t codebook[F][D], unsigned seed = 42u) {
     std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> bit(0, 1);
     for (int f = 0; f < F; f++)
         for (int i = 0; i < D; i++)
-            codebook[f][i] = (elem_t)bit(rng);
+            codebook[f][i] = draw_elem<elem_t>(rng, Family());
 }
 
 } // namespace hdc

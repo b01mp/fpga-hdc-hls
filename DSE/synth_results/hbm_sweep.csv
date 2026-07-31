@@ -1,0 +1,4 @@
+WBITS,latency,interval,peak_bw_GBps,LUT,FF,DSP,BRAM18K,URAM,status
+128,20,8,1.6,1262,1139,0,8,0,ok
+256,16,4,3.2,1525,1533,0,15,0,ok
+512,14,2,6.4,2045,2321,0,29,0,ok

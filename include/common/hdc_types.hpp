@@ -45,6 +45,9 @@ struct bipolar_tag {};   // {-1,+1}         bind=mul,  threshold=sign,     sim=d
 struct fixed_tag   {};   // ap_fixed reals  bind=mul,  threshold=passthru, sim=dot
 struct pow2_tag    {};   // 2^k (exponent)  bind=add,  threshold=passthru, sim=dot
 struct integer_tag {};   // ap_int<W>       bind=mul,  threshold=passthru, sim=dot
+// ---- Memory-space tags: on-chip indexed read vs off-chip HBM burst -----------
+struct onchip_tag  {};   // codebook in BRAM/URAM -> gather
+struct offchip_tag {};   // codebook in HBM/DDR   -> hbm_gather
 
 // ---- Mode application-parameters (passed as function arguments) -------------
 

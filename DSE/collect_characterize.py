@@ -32,24 +32,25 @@ def parse_report(path):
 
 def main():
     rows = []
-    for proj in sorted(glob.glob(os.path.join(ROOT, "proj_ch_*"))):
-        base = os.path.basename(proj).replace("proj_ch_", "")   # e.g. ch_bind_dp4
-        m = re.match(r"(ch_[a-z_]+)_dp(\d+)", base)
+    for proj in sorted(glob.glob(os.path.join(ROOT, "proj_ch_*_cp*"))):
+        base = os.path.basename(proj).replace("proj_ch_", "")   # e.g. ch_bind_dp4_cp1
+        m = re.match(r"(ch_[a-z_]+)_dp(\d+)(?:_cp(\d+))?", base)
         fn = m.group(1) if m else base
         dp = int(m.group(2)) if m else None
+        cp = int(m.group(3)) if m and m.group(3) else None
         rpts = glob.glob(os.path.join(proj, "sol1", "syn", "report", fn + "_csynth.rpt"))
         if not rpts:
             rpts = glob.glob(os.path.join(proj, "sol1", "syn", "report", "*_csynth.rpt"))
         if not rpts:
-            rows.append(dict(function=fn, DP=dp, status="FAILED / no report"))
+            rows.append(dict(function=fn, DP=dp, CP=cp, status="FAILED / no report"))
             continue
         d = parse_report(rpts[0])
-        d.update(function=fn.replace("ch_", ""), DP=dp, status="ok")
+        d.update(function=fn.replace("ch_", ""), DP=dp, CP=cp, status="ok")
         rows.append(d)
 
-    rows.sort(key=lambda r: (r.get("function", ""), r.get("DP") or 0))
+    rows.sort(key=lambda r: (r.get("function", ""), r.get("DP") or 0, r.get("CP") or 0))
     out_csv = os.path.join(ROOT, "DSE", "synth_results", "characterize.csv")
-    cols = ["function", "DP", "latency", "LUT", "FF", "DSP", "BRAM18K", "URAM", "status"]
+    cols = ["function", "DP", "CP", "latency", "LUT", "FF", "DSP", "BRAM18K", "URAM", "status"]
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -57,10 +58,10 @@ def main():
             w.writerow({c: r.get(c, "") for c in cols})
 
     print("wrote", out_csv, "\n")
-    hdr = f"{'function':<16}{'DP':>4}{'latency':>9}{'LUT':>7}{'DSP':>5}{'BRAM':>6}  status"
+    hdr = f"{'function':<16}{'DP':>4}{'CP':>4}{'latency':>9}{'LUT':>7}{'DSP':>5}{'BRAM':>6}  status"
     print(hdr); print("-" * len(hdr))
     for r in rows:
-        print(f"{str(r.get('function','')):<16}{str(r.get('DP','')):>4}{str(r.get('latency','')):>9}"
+        print(f"{str(r.get('function','')):<16}{str(r.get('DP','')):>4}{str(r.get('CP','')):>4}{str(r.get('latency','')):>9}"
               f"{str(r.get('LUT','')):>7}{str(r.get('DSP','')):>5}{str(r.get('BRAM18K','')):>6}  {r.get('status','')}")
 
 

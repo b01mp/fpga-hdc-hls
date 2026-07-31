@@ -23,17 +23,18 @@ namespace hdc {
 
 // proto_t = prototype/state datatype, elem_t = query element datatype.
 // K = num_prototypes, D = hv_dim.
-template <typename proto_t, typename elem_t, int K, int D>
+template <typename proto_t, typename elem_t, int K, int D, int DP = 1>
 void update(proto_t protos[K][D], const elem_t q[D], int label,
             update_mode_t mode = UPDATE_ADD) {
-    // TODO(ADD_SUB / PERCEPTRON): also subtract q from the mispredicted class;
-    // requires a predicted-label argument. Baseline handles single-pass ADD.
-    (void)mode;
+    #pragma HLS ARRAY_PARTITION variable=protos type=cyclic factor=DP dim=2
+    #pragma HLS ARRAY_PARTITION variable=q      type=cyclic factor=DP dim=1
+    (void)mode;   // ADD_SUB / PERCEPTRON need a pred_label arg (deferred)
 UPDATE_LOOP:
-    for (int i = 0; i < D; i++)
+    for (int i = 0; i < D; i++) {
+        #pragma HLS PIPELINE II=1
+        #pragma HLS UNROLL   factor=DP
         protos[label][i] += (proto_t)q[i];
+    }
 }
-
-} // namespace hdc
-
+}
 #endif // HDC_UPDATE_HPP
