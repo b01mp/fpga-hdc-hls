@@ -2,25 +2,32 @@
 # sweep_target.tcl - retarget BOTH off-chip designs (baseline + dataflow overlap)
 # to a chosen device/clock, across the same CP grid.
 #
-#     cd C:/USC/fpga-hdc-hls
-#     & "C:/AMDDesignTools/2026.1/Vitis/bin/vitis-run.bat" --mode hls --tcl scripts/sweep_target.tcl
+#   Linux server (Haoyang):   vitis_hls -f scripts/sweep_target.tcl
+#   Windows:                  & ".../Vitis/bin/vitis-run.bat" --mode hls --tcl scripts/sweep_target.tcl
+#
+#   Then collect:             HDC_TARGET_TAG=$TAG python DSE/collect_target.py
+#
+# This is csynth -- resource + timing ESTIMATES on the real part. It does NOT
+# give measured HBM bandwidth; that needs the v++/XRT board flow.
 #
 # ---------------------------------------------------------------------------
 # TARGET SELECTION -- edit PART/PERIOD/TAG below.
 #
-#   ZCU104  xczu7ev-ffvc1156-2-e   Zynq UltraScale+, URAM, DDR4.
-#                                  Licensed under WebPACK. Same platform NysX
-#                                  reports on, so numbers are directly comparable.
+#   U280 (active) xcu280-fsvh2892-2L-e   Alveo, HBM. Needs a full Vivado licence.
+#                                        If set_part is rejected, run `get_parts`
+#                                        and pick the exact installed U280 string.
+#   ZCU104        xczu7ev-ffvc1156-2-e   Zynq UltraScale+, WebPACK-licensed.
 #
-#   U280    xcu280-fsvh2892-2L-e   Alveo, HBM. REQUIRES A FULL VIVADO LICENSE --
-#                                  device data is installed but WebPACK rejects it
-#                                  ("Part is not supported ... appropriate license").
-#                                  Switch PART/TAG below once running on a licensed
-#                                  machine; nothing else needs to change.
+# NOTE ON CHANNELS: the tops instantiate up to 8 channels (HBM_CP <= 8). The CP
+# grid below therefore stops at 8. To scale toward the U280's 32 HBM pseudo-
+# channels, the channel fan-out in hbm_gather_cp.hpp, top_hbm_gather_cp_df.cpp
+# and top_memory_offchip_cp.cpp must first be extended with HBM_CP >= 16 / 32
+# branches -- do that before adding 16 32 to the loop.
 # ---------------------------------------------------------------------------
 
-set PART   xczu7ev-ffvc1156-2-e
-set TAG    zcu104
+set PART   xcu280-fsvh2892-2L-e
+set TAG    u280
+;# ZCU104 alternative: set PART xczu7ev-ffvc1156-2-e ; set TAG zcu104
 set PERIOD 3.333
 ;# 300 MHz
 
