@@ -1,8 +1,8 @@
-﻿"""
+"""
 collect_target.py -- gather the retargeted (device @300MHz) sweep for BOTH
 off-chip designs: the buffered baseline and the dataflow-overlap version.
 
-Run AFTER scripts/sweep_target.tcl:
+Run AFTER scripts/sweep_target.tcl (or scripts/toolcheck_target.tcl):
     cd C:/USC/fpga-hdc-hls
     python DSE/collect_target.py
 
@@ -17,6 +17,16 @@ Resource percentages are against the selected device's totals.
 
 TAG defaults to "zcu104" and must match the TAG in scripts/sweep_target.tcl.
 Override per-run with the HDC_TARGET_TAG environment variable.
+
+Every row also records `tool_version` and `part`, both read straight out of the
+csynth report header. THIS MATTERS: latency/interval/fmax estimates are NOT
+comparable across Vitis versions. The 2026.1 ZCU104 sweep and the 2023.1 U280
+sweep report the same latency but different intervals for identical source, so
+any table mixing the two is comparing compilers as much as devices. Filter or
+group on `tool_version` before quoting a speedup.
+
+Device totals for utilisation % are looked up by TAG. When TAG is decorated
+(e.g. "zcu104tc23"), set HDC_TARGET_DEVICE to the base device key ("zcu104").
 
 NOTE: U280 (xcu280) requires a FULL Vivado licence. Under the WebPACK licence on
 this machine the part is rejected outright ("Part is not supported ... does not
@@ -43,6 +53,10 @@ DEVICES = {
     "u280":   {"LUT": 1303680, "FF": 2607360, "DSP": 9024, "BRAM18K": 4032, "URAM": 960},
 }
 
+# When TAG is decorated for a one-off run (e.g. a tool-version A/B), the device
+# totals still come from the underlying part. HDC_TARGET_DEVICE selects them.
+DEVICE_KEY = os.environ.get("HDC_TARGET_DEVICE") or TAG
+
 DESIGNS = [
     (f"proj_{TAG}_memoff_c*", rf"proj_{TAG}_memoff_c(\d+)", "memory_offchip_cp_top", "baseline_buffered"),
     (f"proj_{TAG}_df_c*",     rf"proj_{TAG}_df_c(\d+)",     "hbm_gather_cp_df_top",  "dataflow_overlap"),
@@ -52,7 +66,8 @@ DESIGNS = [
 def parse_report(path):
     t = open(path, "r", errors="ignore").read()
     out = {k: None for k in ("BRAM18K", "DSP", "FF", "LUT", "URAM",
-                             "latency", "interval", "target_ns", "estimated_ns")}
+                             "latency", "interval", "target_ns", "estimated_ns",
+                             "tool_version", "part")}
     m = re.search(r"\|Total\s*\|\s*(\d+)\|\s*(\d+)\|\s*(\d+)\|\s*(\d+)\|\s*(\d+)\|", t)
     if m:
         out.update(BRAM18K=int(m.group(1)), DSP=int(m.group(2)),
@@ -68,10 +83,22 @@ def parse_report(path):
     if m:
         out["target_ns"] = float(m.group(1))
         out["estimated_ns"] = float(m.group(2))
+    # provenance, straight from the report header:
+    #   * Version:        2026.1 (Build 6493734 on Jun 16 2026)
+    #   * Target device:  xczu7ev-ffvc1156-2-e
+    m = re.search(r"^\*\s*Version:\s*(\S+)", t, re.M)
+    if m:
+        out["tool_version"] = m.group(1)
+    m = re.search(r"^\*\s*Target device:\s*(\S+)", t, re.M)
+    if m:
+        out["part"] = m.group(1)
     return out
 
 
-DEV = DEVICES.get(TAG, DEVICES['zcu104'])
+DEV = DEVICES.get(DEVICE_KEY, DEVICES['zcu104'])
+if DEVICE_KEY not in DEVICES:
+    print(f"  (warning: no device totals for '{DEVICE_KEY}'; using zcu104 totals. "
+          f"Set HDC_TARGET_DEVICE to one of {sorted(DEVICES)}.)")
 
 def main():
     rows = []
@@ -104,7 +131,8 @@ def main():
     cols = ["design", "CP", "WBITS", "latency", "interval",
             "target_ns", "estimated_ns", "fmax_MHz", "meets_300MHz", "bw_GBps_at_300",
             "LUT", "LUT_pct", "FF", "FF_pct", "DSP", "DSP_pct",
-            "BRAM18K", "BRAM18K_pct", "URAM", "URAM_pct", "status"]
+            "BRAM18K", "BRAM18K_pct", "URAM", "URAM_pct",
+            "tool_version", "part", "status"]
     with open(out_csv, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -113,15 +141,21 @@ def main():
 
     print("wrote", out_csv, "\n")
     hdr = (f"{'design':<18}{'CP':>3}{'lat':>6}{'II':>5}{'est_ns':>8}{'fMHz':>7}{'300?':>6}"
-           f"{'LUT':>8}{'LUT%':>7}{'BRAM':>6}{'BRAM%':>7}  status")
+           f"{'LUT':>8}{'LUT%':>7}{'BRAM':>6}{'BRAM%':>7}{'vitis':>9}  status")
     print(hdr); print("-" * len(hdr))
     for r in rows:
         print(f"{str(r.get('design','')):<18}{str(r.get('CP','')):>3}{str(r.get('latency','')):>6}"
               f"{str(r.get('interval','')):>5}{str(r.get('estimated_ns','')):>8}"
               f"{str(r.get('fmax_MHz','')):>7}{str(r.get('meets_300MHz','')):>6}"
               f"{str(r.get('LUT','')):>8}{str(r.get('LUT_pct','')):>7}"
-              f"{str(r.get('BRAM18K','')):>6}{str(r.get('BRAM18K_pct','')):>7}  {r.get('status','')}")
+              f"{str(r.get('BRAM18K','')):>6}{str(r.get('BRAM18K_pct','')):>7}"
+              f"{str(r.get('tool_version','')):>9}  {r.get('status','')}")
+    vers = sorted({r.get("tool_version") for r in rows if r.get("tool_version")})
     print(f"\nNote: csynth estimates on target '{TAG}' @ {TARGET_MHZ:.0f} MHz -- not post-P&R.")
+    print(f"Vitis version(s) in this table: {', '.join(vers) if vers else 'unknown'}")
+    if len(vers) > 1:
+        print("WARNING: this table mixes Vitis versions. Latency/interval/fmax are")
+        print("         not comparable across versions -- regenerate under one.")
     print("For U280/HBM figures, re-run scripts/sweep_target.tcl with PART/TAG switched")
     print("to xcu280 on a machine with a full Vivado licence.")
 
