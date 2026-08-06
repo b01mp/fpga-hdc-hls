@@ -70,3 +70,10 @@ are commented in the TCL — enable once C-sim is green.
 3. Design-review the skeleton functions (normalize output semantics; update
    ADD_SUB/PERCEPTRON signature; gen_levels non-linear modes).
 4. Only then: architecture parameters (HLS pragmas) + real-device synthesis.
+
+## U280 target sweep
+
+The 300 MHz U280 C-synthesis sweep for the buffered and dataflow-overlap
+off-chip designs is documented in
+[`docs/u280_hls_sweep_results.md`](docs/u280_hls_sweep_results.md). The raw
+summary is available in `DSE/synth_results/u280_sweep.csv`.
