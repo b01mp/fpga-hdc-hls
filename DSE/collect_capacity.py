@@ -53,6 +53,30 @@ DEVICES = {
 }
 RESOURCES = ("LUT", "FF", "DSP", "BRAM18K", "URAM")
 
+# --- Off-chip bandwidth ceiling, per m_axi port ------------------------------
+# csynth schedules an m_axi read at II=1 and assumes the word arrives. It models
+# no DRAM latency, no bandwidth limit and no contention, so its cycle count for
+# the streaming design is a SCHEDULE, not an achievable rate. Without a ceiling
+# the on-chip and off-chip designs come out within 10 cycles of each other at
+# every point, which is an artefact of that assumption rather than a result.
+#
+# U280 carries HBM2 as 32 pseudo-channels, ~460 GB/s aggregate, i.e. ~14.4 GB/s
+# each -- the PC's AXI interface is 256-bit at 450 MHz. A 512-bit user port at
+# 300 MHz DEMANDS 19.2 GB/s, so SmartConnect width-converts and the sustained
+# rate is bounded by the pseudo-channel, not by the port. One port per channel
+# is what this sweep instantiates (CP=1).
+#
+# This is a MODEL, not a measurement. It assumes perfectly sequential, fully
+# utilised bursts -- which the design does issue (contiguous, port-width
+# aligned) -- so it is an upper bound on delivered bandwidth and therefore a
+# LOWER bound on off-chip time. Board measurement would only move it down.
+DEVICE_BW_GBPS_PER_PORT = {
+    "xcu280-fsvh2892-2L-e": 14.4,    # one HBM2 pseudo-channel
+    "xczu7ev-ffvc1156-2-e": 19.2,    # single DDR4 controller, shared by all ports
+    "xc7z020clg484-1":       4.2,    # single DDR3 controller
+}
+TARGET_MHZ = 300.0
+
 DIRPAT = re.compile(r"proj_cap_(onchip|offchip)_x(\d+)_k(\d+)$")
 
 # Each project holds one report per generated sub-module PLUS the top-level one.
@@ -113,6 +137,8 @@ COLS = ["tier", "X", "K", "D", "QB",
         "model_bits", "model_MB",
         "bram18k_required", "bram_capacity_pct", "onchip_capacity_pct",
         "fits_bram", "fits_bram_uram",
+        "bytes_fetched", "bw_GBps_available", "bw_bound_cycles",
+        "effective_cycles", "bw_limited",
         "latency_cycles", "interval", "estimated_ns", "fmax_MHz",
         "LUT", "LUT_pct", "FF", "FF_pct", "DSP", "DSP_pct",
         "BRAM18K_reported", "URAM_reported",
@@ -172,6 +198,28 @@ def main():
                 r["fits_bram"] = r["fits_bram_uram"] = "n/a"
         else:
             r["fits_bram"] = r["fits_bram_uram"] = "?"
+
+        # --- off-chip bandwidth ceiling ---------------------------------------
+        # The on-chip design reads BRAM at the rate its schedule assumes, so its
+        # csynth cycles stand. The streaming design must actually pull the whole
+        # library across a memory port, so its time is bounded below by
+        # bytes / delivered_bandwidth.
+        cyc = r.get("latency_cycles")
+        if tier == "offchip":
+            bw = DEVICE_BW_GBPS_PER_PORT.get(r.get("part"))
+            nbytes = model_bits // 8
+            r["bytes_fetched"] = nbytes
+            r["bw_GBps_available"] = bw
+            if bw:
+                bw_cycles = int(round(nbytes / (bw * 1e9) * TARGET_MHZ * 1e6))
+                r["bw_bound_cycles"] = bw_cycles
+                r["effective_cycles"] = max(cyc, bw_cycles) if cyc else bw_cycles
+                r["bw_limited"] = "yes" if (cyc and bw_cycles > cyc) else "no"
+        else:
+            r["bytes_fetched"] = 0
+            r["effective_cycles"] = cyc
+            r["bw_limited"] = "n/a"
+
         r["status"] = "ok"
         rows.append(r)
 
@@ -185,17 +233,32 @@ def main():
             w.writerow({c: r.get(c, "") for c in COLS})
     print("wrote", out_csv, "\n")
 
-    hdr = ("%-9s%4s%7s%10s%11s%10s%9s%12s%9s%9s" %
-           ("tier", "X", "K", "model_MB", "BRAM_req", "BRAM_cap%", "fits", "lat_cyc",
-            "fmax", "BRAM_rpt"))
+    hdr = ("%-9s%4s%7s%10s%11s%10s%7s%12s%12s%8s%9s" %
+           ("tier", "X", "K", "model_MB", "BRAM_req", "BRAM_cap%", "fits",
+            "sched_cyc", "eff_cyc", "bw_lim", "BRAM_rpt"))
     print(hdr); print("-" * len(hdr))
     for r in rows:
-        print("%-9s%4s%7s%10s%11s%10s%9s%12s%9s%9s" % (
+        print("%-9s%4s%7s%10s%11s%10s%7s%12s%12s%8s%9s" % (
             r.get("tier", ""), r.get("X", ""), r.get("K", ""),
             r.get("model_MB", ""), r.get("bram18k_required", "-"),
             r.get("bram_capacity_pct", "-"), r.get("fits_bram", "?"),
-            r.get("latency_cycles", "-"), r.get("fmax_MHz", "-"),
-            r.get("BRAM18K_reported", "-")))
+            r.get("latency_cycles", "-"), r.get("effective_cycles", "-"),
+            r.get("bw_limited", "-"), r.get("BRAM18K_reported", "-")))
+
+    # side-by-side at each point where BOTH tiers are buildable
+    print("\nON-CHIP vs STREAMING, where both exist (effective cycles):")
+    print("  %-4s%7s%14s%14s%9s" % ("X", "K", "on-chip", "streaming", "ratio"))
+    for x in sorted({r["X"] for r in rows if "X" in r}):
+        for k in sorted({r["K"] for r in rows if r.get("X") == x and "K" in r}):
+            on = next((r for r in rows if r.get("tier") == "onchip"
+                       and r.get("X") == x and r.get("K") == k), None)
+            off = next((r for r in rows if r.get("tier") == "offchip"
+                        and r.get("X") == x and r.get("K") == k), None)
+            if not on or not off or on.get("fits_bram") != "yes":
+                continue
+            a, b = on.get("effective_cycles"), off.get("effective_cycles")
+            if a and b:
+                print("  %-4s%7s%14s%14s%9s" % (x, k, a, b, round(float(b) / a, 2)))
 
     # the headline: where each precision's on-chip design stops fitting
     print("\nON-CHIP CAPACITY CLIFF (BRAM only), per precision:")
@@ -220,10 +283,15 @@ def main():
     print("\npart(s): %s    Vitis: %s" % (", ".join(parts) or "?", ", ".join(vers) or "?"))
     if len(vers) > 1 or len(parts) > 1:
         print("WARNING: this table mixes parts or tool versions -- not comparable.")
-    print("\nCAVEAT: csynth models m_axi optimistically (II=1, no DRAM latency or")
-    print("bandwidth limit). On-chip vs off-chip cycle counts compare SCHEDULES,")
-    print("not achieved wall-clock. Do not quote them as a speedup without an")
-    print("off-chip bandwidth term.")
+    print("\nsched_cyc is the raw csynth schedule, which assumes an m_axi read")
+    print("always returns in one cycle. eff_cyc applies the memory ceiling:")
+    print("for the streaming design, max(schedule, bytes / delivered bandwidth)")
+    print("at %g GB/s per port on the U280 (one HBM2 pseudo-channel). The on-chip"
+          % DEVICE_BW_GBPS_PER_PORT.get("xcu280-fsvh2892-2L-e", 0))
+    print("design reads BRAM at its scheduled rate, so its schedule stands.")
+    print("The ceiling is a MODEL assuming perfectly sequential, fully utilised")
+    print("bursts -- an upper bound on bandwidth, so a LOWER bound on off-chip")
+    print("time. A board measurement could only move it the other way.")
 
 
 if __name__ == "__main__":
