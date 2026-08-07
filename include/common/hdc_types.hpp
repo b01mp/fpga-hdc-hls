@@ -106,25 +106,42 @@ inline acc_t pow2_decode(pow2_t e) {
 }
 
 // Encode a linear value as the NEAREST signed power of two.
-// Priority-encode the magnitude, then round up when m is closer to 2^(k+1)
-// than to 2^k. The test `2m >= 3*2^k` uses only adds and one comparator.
+//
+// The exponent is the position of the magnitude's most significant set bit,
+// found by a 5-step BINARY SEARCH -- about five levels of logic. An earlier
+// version walked 31 successive magnitude comparisons (`m < 2*p`) instead, which
+// synthesised to a 31-deep chain of 32-bit comparators per lane: 36,140 LUT and
+// 48,901 FF for threshold at DP=8, roughly 90x the next-worst family. Testing a
+// bit position costs one LUT input; comparing two 32-bit numbers does not.
+//
+// Values at or above 2^POW2_EXP_MAX saturate immediately, so the search only
+// ever runs on the low bits.
+//
+// Rounding: step up when m is closer to 2^(k+1) than to 2^k, i.e. 2m >= 3*2^k.
+// Ties round up. Uses two adds and one comparator.
 template <typename acc_t>
 inline pow2_t pow2_encode(acc_t v) {
     bool  neg = (v < 0);
-    acc_t m   = neg ? (acc_t)(-v) : v;
-    if (m == 0) return pow2_pack(false, 0);               // quantisation floor: +1
+    acc_t a   = neg ? (acc_t)(-v) : v;
+    if (a == 0) return pow2_pack(false, 0);               // quantisation floor: +1
 
-    int   k = 0;
-    acc_t p = 1;                                          // p == 2^k
-POW2_ENC:
-    for (int b = 0; b < POW2_EXP_MAX; b++) {
-        #pragma HLS UNROLL
-        acc_t p2 = (acc_t)(p + p);
-        if (m < p2) break;
-        p = p2;
-        k = b + 1;
+    ap_uint<64> m64 = (ap_uint<64>)a;
+    if (m64 >> POW2_EXP_MAX) return pow2_pack(neg, POW2_EXP_MAX);   // saturate
+    ap_uint<32> m = (ap_uint<32>)m64;
+
+    ap_uint<32> t = m;
+    int k = 0;
+    if (t >> 16) { k += 16; t >>= 16; }
+    if (t >> 8)  { k += 8;  t >>= 8;  }
+    if (t >> 4)  { k += 4;  t >>= 4;  }
+    if (t >> 2)  { k += 2;  t >>= 2;  }
+    if (t >> 1)  { k += 1; }
+    // invariant here: 2^k <= m < 2^(k+1)
+
+    if (k < POW2_EXP_MAX) {
+        ap_uint<34> p = ((ap_uint<34>)1) << k;
+        if ((((ap_uint<34>)m) << 1) >= (ap_uint<34>)(p + p + p)) k++;
     }
-    if (k < POW2_EXP_MAX && (acc_t)(m + m) >= (acc_t)(p + p + p)) k++;
     return pow2_pack(neg, k);
 }
 
