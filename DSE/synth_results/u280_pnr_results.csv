@@ -1,0 +1,4 @@
+application,config,part,target_period_ns,target_frequency_mhz,wns_ns,tns_ns,setup_failing_endpoints,whs_ns,timing_met,routable_nets,fully_routed_nets,routing_errors,clb_luts,clb_registers,bram_tiles,uram,dsp
+image,best_latency_dp256_cp10,xcu280-fsvh2892-2L-e,4.000,250,-2.823,-58.886,57,0.037,no,6107,6107,0,4647,1378,0,0,0
+time_series,best_latency_dp8_cp2,xcu280-fsvh2892-2L-e,4.000,250,1.155,0.000,0,0.041,yes,729,729,0,491,286,0,0,0
+genome,best_latency_dp8_cp2,xcu280-fsvh2892-2L-e,4.000,250,1.332,0.000,0,0.039,yes,730,730,0,479,262,4,0,0

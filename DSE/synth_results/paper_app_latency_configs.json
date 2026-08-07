@@ -1,0 +1,66 @@
+{
+  "source": "paper-defined application set",
+  "status": "candidate_only",
+  "applications": {
+    "image": [
+      {
+        "rank": 1,
+        "config_name": "best_latency",
+        "env": {
+          "HDC_APP": "image",
+          "HDC_APP_DP": 256,
+          "HDC_APP_CP": 10
+        }
+      },
+      {
+        "rank": 2,
+        "config_name": "second_best_latency",
+        "env": {
+          "HDC_APP": "image",
+          "HDC_APP_DP": 128,
+          "HDC_APP_CP": 5
+        }
+      }
+    ],
+    "time_series": [
+      {
+        "rank": 1,
+        "config_name": "best_latency",
+        "env": {
+          "HDC_APP": "time_series",
+          "HDC_TS_DP": 8,
+          "HDC_TS_CP": 2
+        }
+      },
+      {
+        "rank": 2,
+        "config_name": "second_best_latency",
+        "env": {
+          "HDC_APP": "time_series",
+          "HDC_TS_DP": 4,
+          "HDC_TS_CP": 1
+        }
+      }
+    ],
+    "genome": [
+      {
+        "rank": 1,
+        "config_name": "best_latency",
+        "env": {
+          "HDC_APP": "genome",
+          "HDC_GEN_DP": 8,
+          "HDC_GEN_CP": 2
+        }
+      },
+      {
+        "rank": 2,
+        "config_name": "second_best_latency",
+        "env": {
+          "HDC_APP": "genome",
+          "HDC_GEN_DP": 4,
+          "HDC_GEN_CP": 1
+        }
+      }
+    ]
+  }
+}

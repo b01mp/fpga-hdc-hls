@@ -5,10 +5,15 @@ proj_*/
 *.jou
 *.str
 .Xil/
+.xilinx_local_user_data/
+.vivado_appdata/
 _ide/
 _x/
 vivado*.backup.*
 hls_config.cfg~
+pnr_*/
+clockInfo.txt
+dfx_runtime.txt
 
 # Vitis Unified IDE workspace metadata
 .metadata/
