@@ -6,10 +6,10 @@
  *   App (exposed):  hv_dim (D), num_levels (L), codebook datatype, element_bits, level_mode, seed
  *   Arch (deferred): memory_space, banking_factor, materialize
  *
- * Continuous item memory: L binary HVs where adjacent levels are similar and the
+ * Continuous item memory: L HVs where adjacent levels are similar and the
  * extremes are ~orthogonal. LEVEL_LINEAR (baseline) starts from a random level 0
- * and flips D/2 distinct bits evenly across the L-1 steps -- ported from the
- * emg_hdc codebook. APPROX_LINEAR / THERMOMETER are level_mode variants to add.
+ * and flips D/2 distinct dimensions evenly across the L-1 steps -- ported from
+ * the emg_hdc codebook. APPROX_LINEAR / THERMOMETER are level_mode variants to add.
  *
  * STATUS: LEVEL_LINEAR implemented (C-sim pending); other modes = TODO.
  */
@@ -26,8 +26,9 @@ namespace hdc {
 
 // Map a binary flip-schedule bit to the family's element value. The schedule
 // tracks WHICH dimensions differ (binary by nature); the family only decides how
-// a 0/1 is represented. Binary keeps {0,1}; bipolar/fixed/integer use {-1,+1} so
-// the codebook is genuinely signed instead of a silently-cast {0,1}.
+// a 0/1 is represented. Binary keeps {0,1}; bipolar/fixed/integer use {-1,+1};
+// pow2 packs the sign with exponent 0 (+/-2^0 = +/-1) rather than casting a bare
+// -1 into an unsigned exponent field, which is what the old code did.
 template <typename elem_t>
 inline elem_t level_elem(int bitval, binary_tag)  { return (elem_t)bitval; }
 template <typename elem_t>
@@ -37,7 +38,7 @@ inline elem_t level_elem(int bitval, fixed_tag)   { return bitval ? (elem_t)1 : 
 template <typename elem_t>
 inline elem_t level_elem(int bitval, integer_tag) { return bitval ? (elem_t)1 : (elem_t)(-1); }
 template <typename elem_t>
-inline elem_t level_elem(int bitval, pow2_tag)    { return bitval ? (elem_t)1 : (elem_t)(-1); }
+inline elem_t level_elem(int bitval, pow2_tag)    { return (elem_t)pow2_pack(bitval == 0, 0); }
 
 // elem_t = codebook datatype, D = hv_dim, L = num_levels, Family = datatype tag.
 // Family defaults to binary_tag, so every existing caller is unchanged.

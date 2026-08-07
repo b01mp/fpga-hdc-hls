@@ -6,13 +6,13 @@
  *   App (exposed):  hv_dim (D), num_features (F), codebook datatype, element_bits, seed
  *   Arch (deferred): memory_space, banking_factor, materialize, dimension_parallelism
  *
- * F random, ~orthogonal binary base hypervectors (record encoding item memory).
+ * F random, ~orthogonal base hypervectors (record encoding item memory).
  * Host-side, deterministic (std::mt19937 from `seed`) so a SW reference and the
  * hardware share identical codebooks -- same policy as the emg_hdc baseline.
  * Drawn row-major: row f occupies draws [f*D, (f+1)*D), which rematerialize()
  * relies on to regenerate a single row without storing the codebook.
  *
- * STATUS: implemented (baseline binary); C-sim pending.
+ * STATUS: implemented (binary/bipolar/fixed/integer/pow2); C-sim pending.
  */
 #ifndef HDC_RANDOM_HV_HPP
 #define HDC_RANDOM_HV_HPP
@@ -40,17 +40,20 @@ inline elem_t draw_elem(std::mt19937 &rng, bipolar_tag) {
 template <typename elem_t>
 inline elem_t draw_elem(std::mt19937 &rng, fixed_tag) {
     std::uniform_int_distribution<int> b(0, 1);
-    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // ±1 base HV, fixed-point
+    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // +/-1 base HV, fixed-point
 }
 template <typename elem_t>
 inline elem_t draw_elem(std::mt19937 &rng, integer_tag) {
     std::uniform_int_distribution<int> b(0, 1);
-    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // ±1 base HV, integer
+    return b(rng) ? (elem_t)1 : (elem_t)(-1);              // +/-1 base HV, integer
 }
+// pow2: a base hypervector element is +/-1 == +/-2^0, so the exponent is 0 and
+// only the SIGN is random. Drawing +/-1 directly into the packed type would
+// corrupt it (the old code did exactly that, writing -1 into an unsigned field).
 template <typename elem_t>
 inline elem_t draw_elem(std::mt19937 &rng, pow2_tag) {
     std::uniform_int_distribution<int> b(0, 1);
-    return b(rng) ? (elem_t)1 : (elem_t)(-1);
+    return (elem_t)pow2_pack(b(rng) == 0, 0);              // {-2^0, +2^0}
 }
 
 // elem_t = codebook datatype, D = hv_dim, F = num_features, Family = datatype tag.

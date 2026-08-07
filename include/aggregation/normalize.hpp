@@ -10,6 +10,13 @@
  * for a 1-bit binary element normalize is a no-op-ish identity. The norm is
  * computed in a wide/real accumulator, then each element is rescaled.
  *
+ * POW2 IS NOT SUPPORTED (see the static_assert). A pow2 element stores an
+ * EXPONENT, so `in[i]*in[i]` squares the exponent rather than the value, and
+ * dividing by a non-power-of-two norm has no representation in the family.
+ * Supporting it would mean decode -> normalise -> re-encode, which discards the
+ * whole point (the result is no longer a power of two). Rejecting at compile
+ * time beats silently returning wrong numbers.
+ *
  * STATUS: skeleton -- baseline L2 body written; REVIEW output-datatype semantics
  * (integer elem_t loses precision on divide) before using in an app.
  */
@@ -22,8 +29,14 @@
 namespace hdc {
 
 // elem_t = element datatype, acc_t = accumulator datatype for the norm, D = hv_dim.
-template <typename elem_t, typename acc_t, int D, int DP = 1>
+// Family is carried only to reject pow2 at compile time; the body is family-agnostic.
+template <typename elem_t, typename acc_t, int D, int DP = 1,
+          typename Family = binary_tag>
 void normalize(const elem_t in[D], elem_t out[D]) {
+    static_assert(!is_pow2_family<Family>::value,
+        "normalize() does not support pow2_tag: elements are exponents, so the "
+        "L2 norm and the divide are not representable in the family. Decode to a "
+        "linear type first, or use a different family for this stage.");
     #pragma HLS ARRAY_PARTITION variable=in  type=cyclic factor=DP dim=1
     #pragma HLS ARRAY_PARTITION variable=out type=cyclic factor=DP dim=1
     acc_t sumsq = 0;

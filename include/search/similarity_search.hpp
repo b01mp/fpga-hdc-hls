@@ -27,11 +27,25 @@ namespace hdc {
 // --- Per-family per-element score contribution (accumulated into sim_t) ---
 //   binary : XOR  -> accumulates a Hamming DISTANCE     (lower  = more similar)
 //   others : a*b  -> accumulates a dot-product SIMILARITY (higher = more similar)
+//   pow2   : the product of two signed powers of two is itself a signed power of
+//            two (sign XOR, exponent ADD), which is then DECODED to a linear
+//            value so it can be summed. Multiply-free: an adder plus a shift,
+//            never a DSP. Summing the exponents directly would be wrong --
+//            2^a + 2^b is not a power of two.
 template <typename S, typename T> inline S sim_elem(T a, T b, binary_tag)  { return (S)(a ^ b); }
 template <typename S, typename T> inline S sim_elem(T a, T b, bipolar_tag) { return (S)(a * b); }
 template <typename S, typename T> inline S sim_elem(T a, T b, fixed_tag)   { return (S)(a * b); }
 template <typename S, typename T> inline S sim_elem(T a, T b, integer_tag) { return (S)(a * b); }
-template <typename S, typename T> inline S sim_elem(T a, T b, pow2_tag)    { return (S)(a * b); }
+template <typename S, typename T> inline S sim_elem(T a, T b, pow2_tag) {
+    // NOTE: deliberately NOT routed through pow2_bind(), which saturates the
+    // exponent to fit a pow2_t. The product is only ever consumed as a linear
+    // value here, so the exponent sum is taken at full width. The caller must
+    // size S for (max product exponent + log2(D)) headroom.
+    pow2_t pa = (pow2_t)a, pb = (pow2_t)b;
+    int k = (int)pow2_exp(pa) + (int)pow2_exp(pb);
+    S mag = (S)(((S)1) << k);
+    return (pow2_sign(pa) ^ pow2_sign(pb)) ? (S)(-mag) : mag;
+}
 
 // --- Per-family search direction: is a LARGER accumulated score "more similar"? ---
 inline bool sim_higher_better(binary_tag)  { return false; }  // Hamming distance: minimize

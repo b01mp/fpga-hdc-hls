@@ -13,11 +13,6 @@
  * The enums below are the *mode* application-parameters (level_mode,
  * similarity_metric, search_mode, update_mode, ...): passed as ordinary function
  * arguments so a testbench can exercise each setting.
- *
- * NOTE (architecture-level, deferred): no HLS pragmas (PIPELINE/UNROLL/INLINE/
- * ARRAY_PARTITION/bind_storage) appear anywhere in this library yet. Those are
- * the architecture parameters and get added in a later step once the app-param
- * templates are C-sim verified. Loops are written plainly for now.
  */
 
 #ifndef HDC_TYPES_HPP
@@ -31,23 +26,113 @@ namespace hdc {
 // ---- Convenience element aliases (callers may also pass any ap_* type) ------
 typedef ap_uint<1> binary_t;     // element_bits = 1  (binary HV element, {0,1})
 typedef ap_int<2>  bipolar_t;    // bipolar element {-1, +1}
-// fixed-point / integer / power-of-two elements are e.g. ap_fixed<..>, ap_int<W>,
-// or an ap_uint holding an exponent k for value 2^k. Callers pick the width.
+// fixed-point / integer elements are e.g. ap_fixed<..> or ap_int<W>.
+// Power-of-two elements are `pow2_t`, defined below.
 
 // ---- Datatype-family tags: compile-time op selection via tag dispatch --------
-//   Each datatype-parametric primitive (bind, threshold, similarity_search)
-//   overloads a small op-helper on one of these tags. Instantiating a primitive
-//   with a tag selects that op at COMPILE time (no runtime branch / mux) -- this
-//   is the "datatype-parametric" novelty: bind<...,binary_tag> is an XOR gate,
-//   bind<...,bipolar_tag> is a multiply, etc. (CGR intentionally excluded.)
+//   Each datatype-parametric primitive (bind, bundle, threshold,
+//   similarity_search, update) overloads a small op-helper on one of these tags.
+//   Instantiating a primitive with a tag selects that op at COMPILE time (no
+//   runtime branch / mux) -- this is the "datatype-parametric" novelty:
+//   bind<...,binary_tag> is an XOR gate, bind<...,bipolar_tag> is a multiply,
+//   bind<...,pow2_tag> is an adder. (CGR intentionally excluded.)
 struct binary_tag  {};   // {0,1}           bind=XOR,  threshold=majority, sim=Hamming
 struct bipolar_tag {};   // {-1,+1}         bind=mul,  threshold=sign,     sim=dot
 struct fixed_tag   {};   // ap_fixed reals  bind=mul,  threshold=passthru, sim=dot
-struct pow2_tag    {};   // 2^k (exponent)  bind=add,  threshold=passthru, sim=dot
+struct pow2_tag    {};   // +/-2^k          bind=XOR sign + ADD exp,       sim=dot (shift)
 struct integer_tag {};   // ap_int<W>       bind=mul,  threshold=passthru, sim=dot
+
 // ---- Memory-space tags: on-chip indexed read vs off-chip HBM burst -----------
 struct onchip_tag  {};   // codebook in BRAM/URAM -> gather
 struct offchip_tag {};   // codebook in HBM/DDR   -> hbm_gather
+
+// ---- Compile-time family predicate (used by static_assert guards) -----------
+template <typename F> struct is_pow2_family { static const bool value = false; };
+template <>           struct is_pow2_family<pow2_tag> { static const bool value = true; };
+
+// =============================================================================
+// POWER-OF-TWO ELEMENTS
+// =============================================================================
+// A pow2 element is a SIGNED power of two, packed as
+//
+//      bit  POW2_EXP_BITS      : sign  (1 = negative)
+//      bits POW2_EXP_BITS-1..0 : exponent k, unsigned
+//      value = (-1)^sign * 2^k
+//
+// WHY SIGNED. The earlier definition ("an ap_uint holding an exponent k") is
+// unusable in HDC: bundling, dot products and sign-thresholding all need signed
+// values, and an unsigned type silently wrapped every negative draw.
+//
+// WHY 5 EXPONENT BITS. The reference element in a BioHD-style library is a sum
+// of P bundled +/-1 sequence hypervectors; BioHD (ISCA'22) evaluates up to
+// P = 1e9 and therefore stores its library at 32-bit precision. k in [0,31]
+// covers |value| up to 2^31, i.e. the same dynamic range as int32 -- in 6 bits
+// instead of 32. At D=10240, K=256 that is 1.9 MB instead of 10 MB, which is the
+// difference between fitting in on-chip memory and not.
+//
+// HARDWARE PAYOFF. Multiply becomes XOR(sign) + ADD(exponent); multiply-by-
+// element in similarity becomes a variable shift. No DSPs on either path.
+//
+// KNOWN LIMITATION. A signed power of two cannot represent exactly zero: the
+// smallest magnitude is 2^0 = 1. pow2_encode() maps 0 to +1. For HDC element
+// values this is harmless (elements are never meaningfully zero), but it is a
+// real quantisation floor and must be accounted for in any accuracy study.
+// -----------------------------------------------------------------------------
+static const int POW2_EXP_BITS = 5;                       // exponent field width
+static const int POW2_EXP_MAX  = (1 << POW2_EXP_BITS) - 1; // k in [0, 31]
+
+typedef ap_uint<POW2_EXP_BITS + 1> pow2_t;                // 1 sign + 5 exponent
+
+inline ap_uint<POW2_EXP_BITS> pow2_exp(pow2_t e) {
+    return e.range(POW2_EXP_BITS - 1, 0);
+}
+inline bool pow2_sign(pow2_t e) {
+    return (bool)e[POW2_EXP_BITS];
+}
+inline pow2_t pow2_pack(bool neg, int k) {
+    if (k < 0)             k = 0;
+    if (k > POW2_EXP_MAX)  k = POW2_EXP_MAX;              // saturate, never wrap
+    pow2_t r = 0;
+    r.range(POW2_EXP_BITS - 1, 0) = (ap_uint<POW2_EXP_BITS>)k;
+    r[POW2_EXP_BITS] = neg;
+    return r;
+}
+
+// Decode to a linear value in acc_t: a shift plus a conditional negate.
+template <typename acc_t>
+inline acc_t pow2_decode(pow2_t e) {
+    acc_t mag = (acc_t)(((acc_t)1) << (int)pow2_exp(e));
+    return pow2_sign(e) ? (acc_t)(-mag) : mag;
+}
+
+// Encode a linear value as the NEAREST signed power of two.
+// Priority-encode the magnitude, then round up when m is closer to 2^(k+1)
+// than to 2^k. The test `2m >= 3*2^k` uses only adds and one comparator.
+template <typename acc_t>
+inline pow2_t pow2_encode(acc_t v) {
+    bool  neg = (v < 0);
+    acc_t m   = neg ? (acc_t)(-v) : v;
+    if (m == 0) return pow2_pack(false, 0);               // quantisation floor: +1
+
+    int   k = 0;
+    acc_t p = 1;                                          // p == 2^k
+POW2_ENC:
+    for (int b = 0; b < POW2_EXP_MAX; b++) {
+        #pragma HLS UNROLL
+        acc_t p2 = (acc_t)(p + p);
+        if (m < p2) break;
+        p = p2;
+        k = b + 1;
+    }
+    if (k < POW2_EXP_MAX && (acc_t)(m + m) >= (acc_t)(p + p + p)) k++;
+    return pow2_pack(neg, k);
+}
+
+// Product of two pow2 elements: signs XOR, exponents ADD (2^a * 2^b = 2^(a+b)).
+inline pow2_t pow2_bind(pow2_t a, pow2_t b) {
+    int k = (int)pow2_exp(a) + (int)pow2_exp(b);
+    return pow2_pack(pow2_sign(a) ^ pow2_sign(b), k);     // pow2_pack saturates k
+}
 
 // ---- Mode application-parameters (passed as function arguments) -------------
 

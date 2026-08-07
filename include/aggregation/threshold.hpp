@@ -7,9 +7,10 @@
  *   Arch (deferred): dimension_parallelism, pipeline_mode
  *
  * Datatype-parametric (Novelty 1): the collapse op is selected at COMPILE time by
- * a family tag -- majority vote (binary), sign (bipolar), or passthrough/keep-value
- * (fixed/integer/pow2, which are NOT binarized: the bundled prototype stays multi-
- * valued). `count`/`tie` are only used by the binary/bipolar paths.
+ * a family tag -- majority vote (binary), sign (bipolar), passthrough/keep-value
+ * (fixed/integer, which are NOT binarized: the bundled prototype stays multi-
+ * valued), or re-quantise to the nearest signed power of two (pow2).
+ * `count`/`tie` are only used by the binary/bipolar paths.
  *
  * STATUS: datatype-parametric (binary/bipolar/fixed/integer/pow2) + C-sim tested.
  */
@@ -23,8 +24,14 @@ namespace hdc {
 // --- Per-family collapse op (accumulator element -> prototype element) ---
 //   binary : majority vote  (set iff element was 1 in > half of `count` HVs)
 //   bipolar: sign           (+1 if acc>0, -1 if acc<0, tie by policy)
-//   fixed/integer/pow2      : passthrough -- keep the accumulated value (a cast
+//   fixed/integer           : passthrough -- keep the accumulated value (a cast
 //                             to elem_t); the prototype stays multi-valued.
+//   pow2                    : ENCODE -- keep the sign and round |acc| to the
+//                             nearest power of two (priority encoder + one
+//                             comparator). A passthrough cast would be wrong:
+//                             acc holds a linear VALUE, a pow2 element holds an
+//                             EXPONENT. This is the narrow-store half of the
+//                             "wide accumulate, narrow store" split.
 template <typename acc_t, typename elem_t>
 inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, binary_tag) {
     acc_t twice_half = (acc_t)count;               // compare 2*acc vs count
@@ -44,7 +51,9 @@ inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, fixed_tag)   { r
 template <typename acc_t, typename elem_t>
 inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, integer_tag) { return (elem_t)acc; }
 template <typename acc_t, typename elem_t>
-inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, pow2_tag)    { return (elem_t)acc; }
+inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, pow2_tag) {
+    return (elem_t)pow2_encode<acc_t>(acc);
+}
 
 // acc_t = accumulator datatype, elem_t = prototype/output datatype, D = hv_dim,
 // Family = datatype-family tag (default binary_tag => majority; callers unchanged).

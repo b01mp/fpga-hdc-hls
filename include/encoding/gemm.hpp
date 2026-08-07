@@ -1,17 +1,20 @@
 /**
  * @file gemm.hpp   (Encoding)
- * @brief FUNCTION: gemm  --  (A : HM, B : HM) -> HM  (dense matrix multiply).
+ * @brief FUNCTION: gemm  --  C[M][N] = A[M][K] * B[K][N]  (dense matmul).
  *
- *   Contract:      (A[M][K], B[K][N]) -> C[M][N]   (projection / RFF encoder)
- *   App (exposed):  hv_dim, num_features, input datatype, accumulator_bits
+ *   Contract:      (A, B) -> C accumulated in acc_t
+ *   App (exposed):  input datatype, accumulator datatype, M / K / N
  *                   (+ template: mesh_compute_mode, kronecker_rank)
- *   Arch (deferred): feature/dimension_parallelism, memory_space, banking_factor, pipeline_mode
+ *   Arch (deferred): dimension_parallelism (DP), feature_parallelism (FP)
  *
- * Textbook triple-loop MAC into a wide accumulator; the projection/RFF front-end
- * for MeshHD-style encoders. Tiling / MAC-array structure are architecture knobs
- * added later -- this is the correctness reference.
+ * POW2 IS NOT SUPPORTED (see the static_assert). The inner product mixes a
+ * multiply (which IS closed under signed powers of two: sign XOR + exponent add)
+ * with an ADD across K (which is NOT: 2^a + 2^b is not a power of two). A raw
+ * `(acc_t)A * (acc_t)B` on packed exponents is simply wrong. A correct pow2 GEMM
+ * would decode each product to a linear value before accumulating -- worth doing
+ * if a pow2 projection encoder is ever needed, but it is not on the current path.
  *
- * STATUS: implemented (reference triple-loop); C-sim pending.
+ * STATUS: implemented (linear families); C-sim pending.
  */
 #ifndef HDC_GEMM_HPP
 #define HDC_GEMM_HPP
@@ -21,8 +24,14 @@
 namespace hdc {
 
 // in_t = input datatype, acc_t = accumulator datatype. C[M][N] = A[M][K] * B[K][N].
-template <typename in_t, typename acc_t, int M, int K, int N, int DP = 1, int FP = 1>
+// Family is carried only to reject pow2 at compile time.
+template <typename in_t, typename acc_t, int M, int K, int N, int DP = 1, int FP = 1,
+          typename Family = binary_tag>
 void gemm(const in_t A[M][K], const in_t B[K][N], acc_t C[M][N]) {
+    static_assert(!is_pow2_family<Family>::value,
+        "gemm() does not support pow2_tag: the multiply is closed under signed "
+        "powers of two but the accumulation across K is not. Decode products to "
+        "a linear accumulator first if a pow2 projection is required.");
     #pragma HLS ARRAY_PARTITION variable=A type=cyclic factor=FP dim=2
     #pragma HLS ARRAY_PARTITION variable=B type=cyclic factor=FP dim=1
     #pragma HLS ARRAY_PARTITION variable=B type=cyclic factor=DP dim=2

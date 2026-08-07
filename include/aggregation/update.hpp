@@ -3,7 +3,8 @@
  * @brief FUNCTION: update  --  (protos, q, label) -> protos  (signed accumulate).
  *
  *   Contract:      (protos[K][D], q[D], label) -> protos   (update prototype state)
- *   App (exposed):  update_mode, prototype datatype, accumulator datatype
+ *   App (exposed):  update_mode, prototype datatype, accumulator datatype,
+ *                   datatype family
  *                   (+ template: learning_rate, retrain_epochs)
  *   Arch (deferred): dimension_parallelism, memory_space, pipeline_mode
  *
@@ -12,18 +13,24 @@
  * class -- that needs the *predicted* label too, so the signature will gain a
  * `pred_label` argument when those modes are implemented.
  *
+ * DATATYPE FAMILY. Like bundle(), this is a LINEAR accumulate, so a pow2 query
+ * element must be decoded from its exponent representation before being added.
+ * `Family` is appended LAST (after DP) so existing call sites are unchanged.
+ *
  * STATUS: skeleton -- UPDATE_ADD implemented; ADD_SUB/PERCEPTRON = TODO.
  */
 #ifndef HDC_UPDATE_HPP
 #define HDC_UPDATE_HPP
 
 #include "common/hdc_types.hpp"
+#include "aggregation/bundle.hpp"   // bundle_val: per-family element -> linear value
 
 namespace hdc {
 
 // proto_t = prototype/state datatype, elem_t = query element datatype.
 // K = num_prototypes, D = hv_dim.
-template <typename proto_t, typename elem_t, int K, int D, int DP = 1>
+template <typename proto_t, typename elem_t, int K, int D, int DP = 1,
+          typename Family = binary_tag>
 void update(proto_t protos[K][D], const elem_t q[D], int label,
             update_mode_t mode = UPDATE_ADD) {
     #pragma HLS ARRAY_PARTITION variable=protos type=cyclic factor=DP dim=2
@@ -33,7 +40,7 @@ UPDATE_LOOP:
     for (int i = 0; i < D; i++) {
         #pragma HLS PIPELINE II=1
         #pragma HLS UNROLL   factor=DP
-        protos[label][i] += (proto_t)q[i];
+        protos[label][i] += bundle_val<elem_t, proto_t>(q[i], Family());
     }
 }
 }
