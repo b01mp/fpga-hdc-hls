@@ -36,8 +36,9 @@
 //                   region decoupled by a deep per-channel FIFO (the design).
 // BIO_OVERLAP = 0 : BASELINE. Per reference, burst-load into an on-chip buffer,
 //                   barrier, then compute. Same bursts, same AXI tuning, same
-//                   metric, same query batching -- only the coupling changes,
-//                   so the delta isolates the fetch/compute overlap.
+//                   metric, same query batching, SAME CHANNEL COUNT -- only the
+//                   coupling changes, so the delta isolates the fetch/compute
+//                   overlap.
 #ifndef BIO_OVERLAP
 #define BIO_OVERLAP 1
 #endif
@@ -125,16 +126,47 @@ void compose_biohd_top(
     // ================= BASELINE: buffered, no fetch/compute overlap =========
     // Per reference: burst-load into an on-chip buffer, barrier, then compute.
     // No DATAFLOW region and no FIFO, so the off-chip latency is exposed.
-    hdc::sim_res_t r0[HBM_QB];
-    #pragma HLS ARRAY_PARTITION variable=r0 complete dim=1
+    //
+    // CHANNEL PARALLELISM. The baseline instantiates ONE buffered search per
+    // bank -- mirroring the streaming design, which instantiates one stream
+    // search per bank -- and folds the CP local winners with the identical
+    // rule (res_merge_arr uses the same comparison and the same
+    // global_id = local_k * CP + channel formula as res_merge).
+    //
+    // This previously read bank0 ONLY and then faked the global id as
+    // idx * HBM_CP. At CP=1 that is the identity and harmless, which is why it
+    // went unnoticed -- every BioHD row collected so far is CP=1. At CP>1 the
+    // baseline searched 1/CP of the reference set while the streaming design
+    // searched all of it, so the two designs were not doing the same job and
+    // any overlap speedup measured against it would have been an artefact.
+    // The baseline exists to isolate ONE variable; it has to do equal work.
+    hdc::sim_res_t rb[HBM_CP][HBM_QB];
+    #pragma HLS ARRAY_PARTITION variable=rb complete dim=0
+
     hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
-        bank0, start, qin, r0, bio_family_t());
-MERGE_B:
-    for (int b = 0; b < HBM_QB; b++) {
-        #pragma HLS PIPELINE II=1
-        out_id[b]    = (int)r0[b].idx * HBM_CP;
-        out_score[b] = r0[b].score;
-    }
+        bank0, start, qin, rb[0], bio_family_t());
+#if HBM_CP >= 2
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank1, start, qin, rb[1], bio_family_t());
+#endif
+#if HBM_CP >= 4
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank2, start, qin, rb[2], bio_family_t());
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank3, start, qin, rb[3], bio_family_t());
+#endif
+#if HBM_CP >= 8
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank4, start, qin, rb[4], bio_family_t());
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank5, start, qin, rb[5], bio_family_t());
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank6, start, qin, rb[6], bio_family_t());
+    hdc::similarity_search_buffered<BIO_D, BIO_NP, HBM_QB, BIO_X>(
+        bank7, start, qin, rb[7], bio_family_t());
+#endif
+
+    hdc::res_merge_arr<HBM_CP, HBM_QB>(rb, out_id, out_score, bio_family_t());
 #else
     // ================= DESIGN: streaming with FIFO overlap ==================
     #pragma HLS DATAFLOW
