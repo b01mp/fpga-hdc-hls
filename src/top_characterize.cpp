@@ -35,8 +35,26 @@
 #define CH_CP 1
 #endif
 
-#define D    256      // hv_dim
-#define KP   10       // num_prototypes
+// ---- Problem size ----------------------------------------------------------
+// D and KP were fixed constants until the CP diagnostic needed to vary them.
+// They are now -D overridable with the ORIGINAL values as defaults, so every
+// existing sweep and every already-collected row stays bit-identical: a run
+// with no -DCH_D / -DCH_KP still compiles D=256, KP=10.
+//
+// WHY KP HAD TO BECOME A KNOB. The CP (class_parallelism) numbers in
+// master_table.csv were all measured at KP=10. CP=8 on a 10-iteration class
+// loop leaves almost nothing to divide, so a flat CP curve there is ambiguous:
+// it could be the loop structure, or it could just be too few classes.
+// Sweeping KP separates the two explanations.
+#ifndef CH_D
+#define CH_D  256     // hv_dim
+#endif
+#ifndef CH_KP
+#define CH_KP 10      // num_prototypes
+#endif
+
+#define D    CH_D
+#define KP   CH_KP
 #define NCB  64       // codebook / sample rows
 #define MF   64       // features / matrix dim (gemm/matvec)
 
