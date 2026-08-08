@@ -99,7 +99,7 @@ def load():
             rows.append(dict(D=d, KP=kp, DP=dp, CP=cp, status="FAILED / no report"))
             continue
         r = parse_report(rpts[0])
-        r.update(D=d, KP=kp, DP=dp, CP=cp, status="ok")
+        r.update(D=d, KP=kp, DP=dp, CP=cp, status="ok", report=rpts[0])
         rows.append(r)
     return rows
 
@@ -126,16 +126,30 @@ def derive(rows):
     return rows
 
 
+def cell(row, key):
+    """Format one table cell.
+
+    dict.get(key, default) returns the DEFAULT only when the key is ABSENT.
+    parse_report always creates every key and sets it to None when its regex
+    found nothing, so .get("LUT", "-") returns None, not "-" -- and None has no
+    __format__ for a width spec. Every cell goes through here instead.
+    """
+    v = row.get(key)
+    return "-" if v is None else str(v)
+
+
+ROW_FMT = "{:>7}{:>6}{:>4}{:>4}{:>12}{:>9}{:>7}{:>9}{:>7}{:>10}"
+ROW_KEYS = ["D", "KP", "DP", "CP", "latency", "speedup", "efficiency",
+            "LUT", "LUT_growth", "cls_trip"]
+
+
 def table(rows, title):
     print("\n---- {} ----".format(title))
-    print("{:>7}{:>6}{:>4}{:>4}{:>12}{:>9}{:>7}{:>9}{:>7}{:>10}".format(
-        "D", "KP", "DP", "CP", "latency", "speedup", "eff", "LUT", "LUTx", "cls_trip"))
+    print(ROW_FMT.format("D", "KP", "DP", "CP", "latency", "speedup", "eff",
+                         "LUT", "LUTx", "cls_trip"))
     print("-" * 75)
     for r in rows:
-        print("{:>7}{:>6}{:>4}{:>4}{:>12}{:>9}{:>7}{:>9}{:>7}{:>10}".format(
-            r.get("D", ""), r.get("KP", ""), r.get("DP", ""), r.get("CP", ""),
-            r.get("latency", "-"), r.get("speedup", "-"), r.get("efficiency", "-"),
-            r.get("LUT", "-"), r.get("LUT_growth", "-"), r.get("cls_trip", "-")))
+        print(ROW_FMT.format(*[cell(r, k) for k in ROW_KEYS]))
 
 
 def main():
@@ -179,6 +193,25 @@ def main():
         print("\n!! {} run(s) produced no report:".format(len(fail)))
         for r in fail:
             print("   D={} KP={} DP={} CP={}".format(r["D"], r["KP"], r["DP"], r["CP"]))
+
+    # A report that EXISTS but whose numbers did not parse is a different
+    # failure from a run that never produced one, and it needs a different fix.
+    # Name the file so it can be inspected directly rather than guessed at.
+    unparsed = [r for r in rows if r.get("status") == "ok"
+                and (r.get("LUT") is None or r.get("latency") is None)]
+    if unparsed:
+        print("\n!! {} report(s) found but not fully parsed "
+              "(missing LUT and/or latency):".format(len(unparsed)))
+        for r in unparsed:
+            print("   D={} KP={} DP={} CP={}  latency={}  LUT={}".format(
+                r["D"], r["KP"], r["DP"], r["CP"],
+                r.get("latency"), r.get("LUT")))
+            print("      {}".format(r.get("report", "?")))
+        print("   Inspect one with:")
+        print("      grep -n -A3 'Utilization Estimates' <report>")
+        print("      grep -n -B2 -A6 'Latency (cycles)' <report>")
+        print("   A csynth that hit an error still writes a report file, but")
+        print("   without the summary tables -- check the sweep log for that tag.")
 
     # ---------------------------- checks ----------------------------------
     print("\n" + "=" * 75)

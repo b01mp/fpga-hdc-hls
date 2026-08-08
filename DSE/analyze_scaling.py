@@ -105,6 +105,29 @@ def classify(speedup, efficiency):
     return "superlinear"
 
 
+# ---- Primitives where the "DP" column is really TWO knobs ------------------
+#
+# sweep_characterize.tcl passes -DCH_DP=$dp AND -DCH_FP=$dp -- one sweep
+# variable driving both dimension parallelism and feature parallelism. For most
+# primitives CH_FP is unused, so DP=8 means 8 parallel lanes and the ideal
+# speedup is 8.
+#
+# gemm and matvec are instantiated as gemm<..., CH_DP, CH_FP> and
+# matvec<..., CH_DP, CH_FP>, so they unroll in BOTH dimensions at once. At
+# "DP=8" they have 8 x 8 = 64 parallel MACs, and their ideal speedup is 64,
+# not 8. Scoring them against 8 is what produced the nonsense 46x-128x
+# "superlinear" efficiencies -- the measurement was fine, the ideal was wrong.
+#
+# Correcting it turns matvec from an unexplained 63.85x/8 = 7.98 "superlinear"
+# into 63.85/64 = 0.998 -- near-perfect two-dimensional scaling, which is a
+# reportable result rather than a red flag.
+IDEAL_EXPONENT = {"gemm": 2, "matvec": 2}
+
+
+def ideal_speedup(function, knob_value):
+    return knob_value ** IDEAL_EXPONENT.get(function, 1)
+
+
 CLASS_ORDER = ["superlinear", "linear", "sublinear", "saturating", "negative"]
 
 # A DSE only needs to search a knob whose class is in this set. The others it
@@ -214,8 +237,9 @@ def analyze():
                 ff = num(r.get("FF")) or 0.0
                 dsp = num(r.get("DSP")) or 0.0
 
+                ideal = ideal_speedup(fn, v)
                 speedup = lat0 / lat if lat else 0.0
-                eff = speedup / v
+                eff = speedup / ideal
                 area = (lut / lut0) if lut0 else float("nan")
                 ret = (speedup / area) if (lut0 and area) else float("nan")
 
@@ -229,7 +253,8 @@ def analyze():
                     "isolated_slice": int(isolated),
                     "latency": lat,
                     "speedup": round(speedup, 3),
-                    "ideal_speedup": int(v),
+                    "ideal_speedup": int(ideal),
+                    "knob_dims": IDEAL_EXPONENT.get(fn, 1),
                     "efficiency": round(eff, 3),
                     "LUT": int(lut), "FF": int(ff), "DSP": int(dsp),
                     "LUT_growth": round(area, 3) if lut0 else "",
@@ -284,10 +309,15 @@ def report(detail, verdicts, src):
             "class", "DSE"))
         print("-" * 84)
         for v in vs:
-            print("{:<16} {:>5} {:>8.2f}x {:>7.2f} {:>7}x {:>8}  {:<11} {}".format(
+            mark = " *" if IDEAL_EXPONENT.get(v["function"], 1) > 1 else ""
+            print("{:<16} {:>5} {:>8.2f}x {:>7.2f} {:>7}x {:>8}  {:<11} {}{}".format(
                 v["function"], v["max_knob"], v["speedup"], v["efficiency"],
                 v["LUT_growth"], v["return_per_area"], v["class"],
-                v["dse_action"]))
+                v["dse_action"], mark))
+        if any(IDEAL_EXPONENT.get(v["function"], 1) > 1 for v in vs):
+            print("  * DP also drives CH_FP for this primitive, so it unrolls in")
+            print("    two dimensions at once -- efficiency is scored against")
+            print("    DP^2, not DP. See IDEAL_EXPONENT.")
 
     # ---- what this buys the DSE ---------------------------------------
     per_fn = defaultdict(dict)
@@ -370,6 +400,7 @@ def main():
     detail, verdicts, src = analyze()
 
     d_cols = ["function", "device", "datatype", "D", "KP", "knob", "knob_value",
+              "knob_dims",
               "other_knobs", "isolated_slice", "latency", "speedup",
               "ideal_speedup", "efficiency", "LUT", "FF", "DSP",
               "LUT_growth", "return_per_area", "class"]
