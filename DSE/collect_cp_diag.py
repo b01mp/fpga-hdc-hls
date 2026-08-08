@@ -59,7 +59,8 @@ LEGACY_TOL = 0.35          # fractional
 def parse_report(path):
     t = open(path, "r", errors="ignore").read()
     out = {"BRAM18K": None, "DSP": None, "FF": None, "LUT": None, "URAM": None,
-           "latency": None, "cls_trip": None, "dim_trip": None}
+           "latency": None, "cls_trip": None, "dim_trip": None,
+           "cls_loop": None, "dim_loop": None}
 
     m = re.search(r"\|Total\s*\|\s*(\d+)\|\s*(\d+)\|\s*(\d+)\|\s*(\d+)\|\s*(\d+)\|", t)
     if m:
@@ -70,19 +71,46 @@ def parse_report(path):
     if m:
         out["latency"] = int(m.group(2).replace(",", ""))
 
-    # Loop-table rows look like:
-    #   |- SEARCH_CLASSES | min | max | iter_lat | ach | tgt | trip | pipelined |
-    # Column count varies slightly between Vitis versions, so take the row and
-    # pull the numeric fields positionally. Trip count is the last plain
-    # integer before the yes/no "Pipelined" cell.
-    for name, key in (("SEARCH_CLASSES", "cls_trip"), ("SEARCH_DIM", "dim_trip")):
-        m = re.search(r"\|\s*[-+ ]*" + name + r"\s*\|([^\n]*)\|", t)
-        if not m:
-            continue
-        cells = [c.strip() for c in m.group(1).split("|")]
-        nums = [c for c in cells if re.match(r"^\d[\d,]*$", c)]
-        if nums:
-            out[key] = int(nums[-1].replace(",", ""))
+    # ---- loop table -------------------------------------------------------
+    #
+    # Rows look like:
+    #   |- SEARCH_CLASSES_SEARCH_DIM | min | max | iter | ach | tgt | trip | yes |
+    #
+    # NOTE THE NAME. Vitis MERGES a nested loop pair into one entry named
+    # OUTER_INNER when it flattens them. An earlier version of this parser
+    # matched the loop name exactly ("SEARCH_CLASSES" followed by a column
+    # separator) and therefore matched nothing at all on a flattened design --
+    # every cls_trip came back empty.
+    #
+    # That merge is not a parsing nuisance, it is EVIDENCE: a flattened
+    # SEARCH_CLASSES_SEARCH_DIM means the outer loop no longer exists as a
+    # separate entity, so an UNROLL factor on it has nothing to apply to. The
+    # actual loop name is therefore recorded alongside the trip count.
+    #
+    # Matching is now by PREFIX so both the flattened and unflattened forms are
+    # found, and the trip count is taken positionally (the last plain integer
+    # before the yes/no "Pipelined" cell) because the column count varies
+    # between Vitis versions.
+    for prefix, tkey, nkey in (("SEARCH_CLASSES", "cls_trip", "cls_loop"),
+                               ("CLASS_GROUP",    "cls_trip", "cls_loop"),
+                               ("SEARCH_DIM",     "dim_trip", "dim_loop")):
+        if out.get(tkey) is not None:
+            continue                      # an earlier prefix already matched
+        for line in t.splitlines():
+            if "|" not in line:
+                continue
+            cells = [c.strip() for c in line.split("|")]
+            cells = [c for c in cells if c != ""]
+            if not cells:
+                continue
+            label = cells[0].lstrip("-+ ").strip()
+            if not label.startswith(prefix):
+                continue
+            nums = [c for c in cells[1:] if re.match(r"^\d[\d,]*$", c)]
+            if nums:
+                out[tkey] = int(nums[-1].replace(",", ""))
+                out[nkey] = label
+            break
     return out
 
 
@@ -161,7 +189,7 @@ def main():
 
     cols = ["D", "KP", "DP", "CP", "knob", "knob_value", "latency", "speedup",
             "efficiency", "LUT", "LUT_growth", "FF", "DSP", "BRAM18K",
-            "cls_trip", "dim_trip", "status"]
+            "cls_trip", "cls_loop", "dim_trip", "dim_loop", "status"]
     if not os.path.isdir(SR):
         os.makedirs(SR)
     out_csv = os.path.join(SR, "cp_diag.csv")
