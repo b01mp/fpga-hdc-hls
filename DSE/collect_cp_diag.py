@@ -35,6 +35,7 @@ BASELINES
 """
 import os
 import re
+import math
 import glob
 import csv
 from collections import defaultdict
@@ -52,8 +53,32 @@ GOOD_EFF = 0.50
 # different part and a different Vitis version will not match to 3 decimals,
 # but they should not disagree about whether CP does anything.
 LEGACY = (256, 10)
-LEGACY_CP8_SPEEDUP = 1.096
-LEGACY_TOL = 0.35          # fractional
+
+# Pre-fix U280 measurement at the legacy size, kept for the record only.
+# The reproduction arm originally asserted against the xc7z020 number (1.096x)
+# to detect an ENVIRONMENT change. That assertion is now void: the CP
+# implementation was deliberately restructured, so the legacy-size result is
+# SUPPOSED to differ. The arm is still run and printed -- it is the cheapest
+# place to see the change at a glance -- but it no longer fails the run.
+LEGACY_PREFIX_U280 = 0.581      # what this configuration measured before the fix
+LEGACY_PREFIX_XC7Z = 1.096      # what xc7z020 measured, on the old code
+
+
+def cp_ideal(K, CP):
+    """Ideal speedup from CP groups, which is NOT simply CP.
+
+    The class loop runs in ceil(K/CP) groups. When K is not a multiple of CP the
+    final group is partial, and the design still pays for a whole group, so the
+    best achievable speedup is K / ceil(K/CP), not CP.
+
+    This matters at the legacy size: K=10 with CP=8 is TWO groups, so the ideal
+    is 10/2 = 5x, not 8x. Scoring 4.82x against 8 gives a misleading 0.60
+    efficiency; scoring it against 5 gives 0.96, which is what actually
+    happened. At K=64/256/1024 with CP<=8 the division is exact and this
+    reduces to CP.
+    """
+    groups = int(math.ceil(K / float(CP)))
+    return K / float(groups)
 
 
 def parse_report(path):
@@ -111,6 +136,36 @@ def parse_report(path):
                 out[tkey] = int(nums[-1].replace(",", ""))
                 out[nkey] = label
             break
+
+    # Fallback: HLS renames loops as it restructures them, so a fixed prefix
+    # list will always eventually miss one. If nothing matched, take the loop
+    # row with the LARGEST trip count -- that is the dominant loop whatever it
+    # ended up being called -- and record its real name. An unrecognised name
+    # is information, not an error.
+    if out.get("cls_trip") is None:
+        best_label, best_trip = None, -1
+        in_loop_table = False
+        for line in t.splitlines():
+            if "Loop Name" in line:
+                in_loop_table = True
+                continue
+            if not in_loop_table or "|" not in line:
+                continue
+            cells = [c.strip() for c in line.split("|") if c.strip() != ""]
+            if len(cells) < 3:
+                continue
+            label = cells[0].lstrip("-+ ").strip()
+            if not label or label.startswith("Loop"):
+                continue
+            nums = [c for c in cells[1:] if re.match(r"^\d[\d,]*$", c)]
+            if not nums:
+                continue
+            trip = int(nums[-1].replace(",", ""))
+            if trip > best_trip:
+                best_trip, best_label = trip, label
+        if best_label is not None:
+            out["cls_trip"] = best_trip
+            out["cls_loop"] = best_label + " (auto)"
     return out
 
 
@@ -145,10 +200,12 @@ def derive(rows):
             continue
         knob = "CP" if r["CP"] > 1 else ("DP" if r["DP"] > 1 else "-")
         val = r["CP"] if knob == "CP" else (r["DP"] if knob == "DP" else 1)
+        ideal = cp_ideal(r["KP"], r["CP"]) if knob == "CP" else float(val)
         r["knob"] = knob
         r["knob_value"] = val
+        r["ideal"] = round(ideal, 3)
         r["speedup"] = round(b["latency"] / float(r["latency"]), 3)
-        r["efficiency"] = round(r["speedup"] / val, 3)
+        r["efficiency"] = round(r["speedup"] / ideal, 3)
         if b.get("LUT"):
             r["LUT_growth"] = round(r["LUT"] / float(b["LUT"]), 3)
     return rows
@@ -189,7 +246,7 @@ def main():
 
     cols = ["D", "KP", "DP", "CP", "knob", "knob_value", "latency", "speedup",
             "efficiency", "LUT", "LUT_growth", "FF", "DSP", "BRAM18K",
-            "cls_trip", "cls_loop", "dim_trip", "dim_loop", "status"]
+            "ideal", "cls_trip", "cls_loop", "dim_trip", "dim_loop", "status"]
     if not os.path.isdir(SR):
         os.makedirs(SR)
     out_csv = os.path.join(SR, "cp_diag.csv")
@@ -246,25 +303,23 @@ def main():
     print(" VERDICT")
     print("=" * 75)
 
-    # -- check 0: did the legacy configuration reproduce? ------------------
+    # -- check 0: the legacy-size configuration, for the record ------------
+    #
+    # This is no longer a pass/fail assertion. It asserted against the xc7z020
+    # number while the question was "did the ENVIRONMENT change?". Once the CP
+    # implementation was deliberately restructured, a difference here is the
+    # intended outcome, not a warning -- so it is reported and not judged.
     r8 = next((r for r in repro if r["CP"] == 8 and "speedup" in r), None)
     if r8 is None:
-        print(" [repro] MISSING -- no D=256 KP=10 CP=8 point. Cannot trust the rest.")
+        print(" [legacy] no D=256 KP=10 CP=8 point in this run.")
     else:
-        lo = LEGACY_CP8_SPEEDUP * (1 - LEGACY_TOL)
-        hi = LEGACY_CP8_SPEEDUP * (1 + LEGACY_TOL)
-        if lo <= r8["speedup"] <= hi:
-            print(" [repro] OK -- CP=8 at the legacy size gives {:.2f}x, consistent".format(
-                r8["speedup"]))
-            print("         with the {:.2f}x measured on xc7z020. Retarget is sound.".format(
-                LEGACY_CP8_SPEEDUP))
-        else:
-            print(" [repro] !! MISMATCH -- CP=8 at the legacy size gives {:.2f}x, but".format(
-                r8["speedup"]))
-            print("         xc7z020 measured {:.2f}x. Something other than the".format(
-                LEGACY_CP8_SPEEDUP))
-            print("         library changed (part, tool version, script). INVESTIGATE")
-            print("         THIS BEFORE reading anything below.")
+        print(" [legacy] D=256, KP=10, CP=8 -> {:.2f}x".format(r8["speedup"]))
+        print("          for reference: {:.2f}x pre-fix on this same U280 setup,".format(
+            LEGACY_PREFIX_U280))
+        print("          {:.2f}x on the old xc7z020 measurements.".format(
+            LEGACY_PREFIX_XC7Z))
+        print("          NOTE: K=10 with CP=8 is two groups, so the ideal here is")
+        print("          10/2 = 5.00x, not 8x. Efficiency above is scored on that.")
 
     # -- check 1: is the control arm healthy? ------------------------------
     dp_best = [r for r in ctrl if r.get("efficiency") is not None]
@@ -299,7 +354,20 @@ def main():
         print("\n INCONCLUSIVE -- not enough CP points. Check the FAILED list above.")
     else:
         first, last = cp_pts[0]["efficiency"], cp_pts[-1]["efficiency"]
-        if last >= GOOD_EFF and last > first * 1.5:
+        worst = min(p["efficiency"] for p in cp_pts)
+        if worst >= 0.80:
+            print("\n (C) CP SCALES. Efficiency is {:.2f} or better at EVERY".format(worst))
+            print("     prototype count measured ({} .. {}), so the knob delivers".format(
+                cp_pts[0]["KP"], cp_pts[-1]["KP"]))
+            print("     what it advertises across the whole range rather than only")
+            print("     in a narrow regime.")
+            best = max(cp_pts, key=lambda p: p["speedup"])
+            print("     Best point: {:.2f}x at KP={}, CP={}, for {}x the LUTs.".format(
+                best["speedup"], best["KP"], best["CP"],
+                best.get("LUT_growth", "?")))
+            print("     ACTION: none. Proceed to the full characterisation --")
+            print("     phase 3 of scripts/sweep_characterize.tcl.")
+        elif last >= GOOD_EFF and last > first * 1.5:
             print("\n (A) TOO FEW CLASSES. Efficiency climbs {:.2f} (KP={}) -> {:.2f}".format(
                 first, cp_pts[0]["KP"], last))
             print("     (KP={}). CP works; it was characterised outside its useful".format(
