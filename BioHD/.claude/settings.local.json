@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python --version; python -c \"import torch, numpy, matplotlib; print\\('torch', torch.__version__\\); print\\('numpy', numpy.__version__\\); print\\('matplotlib', matplotlib.__version__\\)\")",
+      "PowerShell(pip *)",
+      "PowerShell(python -m pip --version)"
+    ]
+  }
+}
