@@ -34,10 +34,39 @@ namespace hdc {
 //                             "wide accumulate, narrow store" split.
 template <typename acc_t, typename elem_t>
 inline elem_t thresh_op(acc_t acc, int count, tie_policy_t tie, binary_tag) {
-    acc_t twice_half = (acc_t)count;               // compare 2*acc vs count
-    acc_t two_acc    = acc << 1;
-    if (two_acc > twice_half) return (elem_t)1;
-    if (two_acc < twice_half) return (elem_t)0;
+    // Majority vote: set the bit iff the element was 1 in MORE than half of
+    // `count` bundled hypervectors, i.e. iff 2*acc > count.
+    //
+    // WHY THE COMPARISON IS WIDENED FIRST. This previously read
+    //
+    //     acc_t twice_half = (acc_t)count;
+    //     acc_t two_acc    = acc << 1;
+    //
+    // which computes 2*acc IN acc_t's OWN WIDTH. A bundle accumulator is sized
+    // to hold 0..N, so acc can reach N -- and 2*N does not fit. When every one
+    // of the N bundled hypervectors agreed on a dimension, acc == N, the shift
+    // wrapped to a small value, and the vote returned 0 where it must return 1.
+    //
+    // Two of the three paper applications were affected:
+    //
+    //     image classification  N=16, ap_uint<5> (0..31), 2N=32  -> wrapped
+    //     genome                N=8,  ap_uint<4> (0..15), 2N=16  -> wrapped
+    //     time series           N=6,  ap_uint<4> (0..15), 2N=12  -> ok
+    //
+    // The failure is silent and data-dependent -- it needs unanimity on a
+    // dimension, roughly a 3-in-100,000 event per dimension at N=16 with random
+    // inputs -- so it survives casual testing and corrupts a bit of the query
+    // hypervector when it does fire.
+    //
+    // The fix belongs HERE and not in the accumulator width. Requiring callers
+    // to carry bits_for(N)+1 would spend an extra flip-flop on every one of D
+    // dimensions purely to accommodate one comparison inside this function.
+    // Widening only the comparands costs nothing: HLS bounds `a2` by the
+    // accumulator's range and infers a correspondingly narrow comparator.
+    const long a2 = 2L * (long)acc;
+    const long c2 = (long)count;
+    if (a2 > c2) return (elem_t)1;
+    if (a2 < c2) return (elem_t)0;
     return (elem_t)(tie == TIE_SET_ONE ? 1 : 0);
 }
 template <typename acc_t, typename elem_t>
