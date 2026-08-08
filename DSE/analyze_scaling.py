@@ -56,6 +56,7 @@ OUTPUT
 """
 import os
 import csv
+import math
 from collections import defaultdict
 
 SR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "synth_results")
@@ -124,7 +125,33 @@ def classify(speedup, efficiency):
 IDEAL_EXPONENT = {"gemm": 2, "matvec": 2}
 
 
-def ideal_speedup(function, knob_value):
+def ideal_speedup(function, knob, knob_value, KP=None):
+    """The speedup a perfect implementation could reach at this knob setting.
+
+    Three cases, and getting any of them wrong makes a correct design look
+    broken (or a broken one look fine):
+
+    1. DP on gemm/matvec -- the sweep drives CH_DP and CH_FP from one variable,
+       so these unroll in two dimensions and the ideal is DP^2. See above.
+
+    2. CP -- the class loop runs in ceil(K/CP) GROUPS, and a partial final group
+       still costs a whole group. The ideal is therefore K / ceil(K/CP), not CP.
+       At K=10 with CP=8 that is two groups, so the ceiling is 5.00x and a
+       measured 4.82x is 96% of ideal -- not the 60% that dividing by 8 implies.
+       Whenever CP divides K exactly this reduces to CP.
+
+    3. everything else -- ideal is the knob value.
+    """
+    if knob == "CP" and KP:
+        try:
+            k = int(KP)
+            cp = int(knob_value)
+            if k > 0 and cp > 0:
+                groups = int(math.ceil(k / float(cp)))
+                return k / float(groups)
+        except (TypeError, ValueError):
+            pass
+        return float(knob_value)
     return knob_value ** IDEAL_EXPONENT.get(function, 1)
 
 
@@ -237,7 +264,7 @@ def analyze():
                 ff = num(r.get("FF")) or 0.0
                 dsp = num(r.get("DSP")) or 0.0
 
-                ideal = ideal_speedup(fn, v)
+                ideal = ideal_speedup(fn, knob, v, kpval)
                 speedup = lat0 / lat if lat else 0.0
                 eff = speedup / ideal
                 area = (lut / lut0) if lut0 else float("nan")
@@ -253,7 +280,7 @@ def analyze():
                     "isolated_slice": int(isolated),
                     "latency": lat,
                     "speedup": round(speedup, 3),
-                    "ideal_speedup": int(ideal),
+                    "ideal_speedup": round(float(ideal), 3),
                     "knob_dims": IDEAL_EXPONENT.get(fn, 1),
                     "efficiency": round(eff, 3),
                     "LUT": int(lut), "FF": int(ff), "DSP": int(dsp),
