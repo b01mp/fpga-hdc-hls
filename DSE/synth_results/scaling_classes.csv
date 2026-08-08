@@ -1,0 +1,20 @@
+function,device,datatype,D,KP,knob,max_knob,speedup,efficiency,LUT_growth,return_per_area,class,dse_action
+bind,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.977,0.997,1.31,6.092,linear,search
+bundle,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.977,0.997,3.355,2.378,linear,search
+cast,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.99,0.999,1.0,7.99,linear,search
+convergence,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,8.0,1.0,2.966,2.697,linear,search
+flatten,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,8.0,1.0,0.94,8.512,linear,search
+gather,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.978,0.997,0.961,8.302,linear,search
+gemm,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,46.968,0.734,4.771,9.845,linear,search
+init_centroids,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,8.0,1.0,0.951,8.408,linear,search
+matvec,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,63.849,0.998,4.687,13.622,linear,search
+normalize,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,1.772,0.221,4.153,0.427,saturating,pin at 1
+permute,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,3.907,0.488,6.375,0.613,sublinear,search
+place,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,8.0,1.0,0.951,8.408,linear,search
+scale,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.978,0.997,2.818,2.831,linear,search
+similarity,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.999,1.0,1.383,5.784,linear,search
+threshold,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.984,0.998,3.256,2.452,linear,search
+transpose,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,8.0,1.0,0.945,8.463,linear,search
+update,xcu280-fsvh2892-2L-e,binary,10240,64,DP,8,7.967,0.996,2.456,3.244,linear,search
+convergence,xcu280-fsvh2892-2L-e,binary,10240,64,CP,8,7.999,1.0,4.124,1.939,linear,search
+similarity,xcu280-fsvh2892-2L-e,binary,10240,64,CP,8,8.0,1.0,2.724,2.937,linear,search
