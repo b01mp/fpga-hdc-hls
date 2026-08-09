@@ -81,20 +81,29 @@ extern "C" void krnl_hdc_stream(
         int n_words) {
 
     #pragma HLS INTERFACE m_axi port=bank0 offset=slave bundle=gmem0 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank0 bundle=control
 #if HBM_CP >= 2
     #pragma HLS INTERFACE m_axi port=bank1 offset=slave bundle=gmem1 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank1 bundle=control
 #endif
 #if HBM_CP >= 4
     #pragma HLS INTERFACE m_axi port=bank2 offset=slave bundle=gmem2 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank2 bundle=control
     #pragma HLS INTERFACE m_axi port=bank3 offset=slave bundle=gmem3 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank3 bundle=control
 #endif
 #if HBM_CP >= 8
     #pragma HLS INTERFACE m_axi port=bank4 offset=slave bundle=gmem4 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank4 bundle=control
     #pragma HLS INTERFACE m_axi port=bank5 offset=slave bundle=gmem5 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank5 bundle=control
     #pragma HLS INTERFACE m_axi port=bank6 offset=slave bundle=gmem6 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank6 bundle=control
     #pragma HLS INTERFACE m_axi port=bank7 offset=slave bundle=gmem7 num_read_outstanding=32 max_read_burst_length=64
+    #pragma HLS INTERFACE s_axilite port=bank7 bundle=control
 #endif
     #pragma HLS INTERFACE m_axi port=out offset=slave bundle=gmemout
+    #pragma HLS INTERFACE s_axilite port=out bundle=control
     #pragma HLS INTERFACE s_axilite port=n_words bundle=control
     #pragma HLS INTERFACE s_axilite port=return  bundle=control
 

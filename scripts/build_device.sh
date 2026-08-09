@@ -64,8 +64,15 @@ gen_cfg() {
         echo "freqHz=300000000:${kname}_1"
         echo
         echo "[vivado]"
+        echo "synth.jobs=${JOBS}"
+        echo "impl.jobs=${JOBS}"
         echo "prop=run.impl_1.STEPS.PHYS_OPT_DESIGN.IS_ENABLED=true"
     } > "$out"
+}
+
+# v++ deprecated --jobs on the command line; it now wants it in a config file.
+gen_compile_cfg() {
+    printf '[hls]\njobs=%s\n' "$JOBS" > "$1"
 }
 
 build_host() {
@@ -84,22 +91,23 @@ build_one() {
     local src;   src=$(src_of "$d")
     local tag="${d}_cp${cp}"
     local cfg="$CFGDIR/${TARGET}_${tag}.cfg"
+    local ccfg="$CFGDIR/${TARGET}_${tag}_compile.cfg"
     local log="$LOGDIR/${TARGET}_${tag}.log"
     gen_cfg "$kname" "$cp" "$cfg"
+    gen_compile_cfg "$ccfg"
 
     {
         echo "### compile $tag ($TARGET) $(date)"
         v++ -c -t "$TARGET" --platform "$PLATFORM" -k "$kname" \
             -D HBM_CP="$cp" -D HBM_WBITS=512 \
             -I "$ROOT/include" \
-            --jobs "$JOBS" \
+            --config "$ccfg" \
             --temp_dir "$BUILD/_x_${tag}" \
             -o "$BUILD/${tag}.xo" "$ROOT/$src"
 
         echo "### link $tag ($TARGET) $(date)"
         v++ -l -t "$TARGET" --platform "$PLATFORM" \
             --config "$cfg" \
-            --jobs "$JOBS" \
             --report_level 2 \
             --temp_dir "$BUILD/_x_${tag}" \
             -o "$BUILD/${tag}.xclbin" "$BUILD/${tag}.xo"
