@@ -67,6 +67,14 @@ static std::vector<Grid> emu_grids() {
 }
 
 // --------------------------------------------------------------- helpers
+// Hardware emulation runs the whole platform -- PCIe, DMA, HBM controllers --
+// in cycle-accurate RTL, so every byte transferred costs simulated cycles. A
+// few hundred KB takes hours. Emulation exists here only to prove the kernel
+// does not deadlock and returns correct data, so the transfer is clamped to a
+// couple of tiles. The performance columns from an emulation run are
+// meaningless by construction and must never be quoted.
+static const long long EMU_MAX_WORDS = 128;
+
 static long long words_per_channel(int K, int CP, int bits) {
     // bytes per prototype = D * bits / 8 ; words per prototype = that / 64
     long long wpp = (long long)D_ELEMS * bits / 8 / WBYTES;   // 20 * bits
@@ -136,6 +144,7 @@ int main(int argc, char **argv) {
     for (auto &g : grids)
         for (int K : g.K)
             max_words = std::max(max_words, words_per_channel(K, CP, g.bits));
+    if (is_emu) max_words = std::min(max_words, EMU_MAX_WORDS);
     const size_t max_bytes = (size_t)max_words * WBYTES;
     printf("allocating %d x %.1f MB on HBM\n", CP, max_bytes / 1048576.0);
 
@@ -173,7 +182,8 @@ int main(int argc, char **argv) {
 
     for (auto &g : grids) {
         for (int K : g.K) {
-            const long long nw    = words_per_channel(K, CP, g.bits);
+            long long nw = words_per_channel(K, CP, g.bits);
+            if (is_emu) nw = std::min(nw, EMU_MAX_WORDS);
             const uint64_t  moved = (uint64_t)nw * WBYTES * CP;
             const uint64_t  logic = (uint64_t)K * D_ELEMS * g.bits / 8;
 
