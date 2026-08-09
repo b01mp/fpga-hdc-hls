@@ -1,8 +1,11 @@
 # Per-Stage Precision — results
 
-**Status:** both tiers measured. Four refinements open (§9).
-**Hardware data:** `DSE/synth_results/precision_sweep.csv` (30 points)
-**Accuracy data:** `DSE/synth_results/precision_accuracy.csv` (54 points)
+**Status:** both tiers measured; BRAM headline confirmed post-place-and-route.
+Two refinements open (§9).
+**Hardware data:** `DSE/synth_results/precision_sweep.csv` (30 csynth points)
+**Post-P&R data:** `DSE/synth_results/precision_pnr.csv` (6 Vivado points, synth + place)
+**Accuracy data:** `DSE/synth_results/precision_accuracy.csv` (aggregated over 5 seeds)
+**Pareto:** `DSE/synth_results/precision_pareto.csv`
 **Correctness gate:** `tb/tb_precision.cpp` — ALL PASS
 **Target:** U280 (`xcu280-fsvh2892-2L-e`) @ 300 MHz, Vitis HLS 2023.1
 **Applications:** image classification, genome search, time-series classification
@@ -86,20 +89,44 @@ Python API hardcodes `dtype="int32"` for `bundle` (`python_hdc/api.py`, on
 
 ### 4.1 Right-sizing is free, and the saving is mostly memory
 
-At D=10240, versus `wide`:
+**These are post-place-and-route numbers.** All six configurations completed
+`synth_design` and `place_design` on the U280.
 
-| application | LUT | FF | **BRAM** | latency |
-|---|---:|---:|---:|---:|
-| image | −12.8% | −21.1% | **64 → 40 (−37.5%)** | identical |
-| genome | −6.4% | −4.5% | **56 → 32 (−42.9%)** | identical |
-| time series | −7.7% | −5.0% | **56 → 32 (−42.9%)** | identical |
+| application | BRAM18K `wide` → `right` | **measured cut** | csynth predicted | LUT | FF |
+|---|---:|---:|---:|---:|---:|
+| image | 32 → 8 | **75.0%** | 37.5% | −12.8% | −21.1% |
+| genome | 40 → 16 | **60.0%** | 42.9% | −6.4% | −4.5% |
+| time series | 40 → 8 | **80.0%** | 42.9% | −7.7% | −5.0% |
 
-At D=1024 every configuration reports 0 BRAM — the arrays stay in registers and
-LUTRAM, and LUT savings are larger (20.9% / 18.9% / 22.1%). The block-RAM saving
-exists only once arrays spill, which is why both D values were swept.
+Latency is identical in every case. Physical tiles give the same ratios
+(16→4, 20→8, 20→4), so the saving is not an artifact of how blocks are counted.
 
-**Latency is identical across all five configurations, every application, every
-D.** Precision here is a pure area knob with no time cost.
+**csynth was wrong again, in the other direction.** It *over*-estimated here
+(64 where Vivado places 32) having *under*-estimated by 32× in the capacity
+study. Two opposite failure modes, neither visible from the estimate itself.
+Any block-RAM claim in this paper needs an implementation number behind it.
+
+**The mechanism, which a bit count does not predict.** Look at which primitives
+each configuration uses:
+
+```
+image wide  : 16 x RAMB36,  0 x RAMB18
+image right :  0 x RAMB36,  8 x RAMB18
+```
+
+`wide` needs full 36 Kb blocks; `right` fits entirely in 18 Kb half-blocks. The
+narrower accumulator drops to a *smaller physical primitive*, which is why the
+saving exceeds the ratio of the widths themselves.
+
+**Scale caveat.** The largest of these designs uses 20 of 2016 tiles — about 1%
+of the device. The percentage is real but sits on a small absolute base. Quote
+the ratio *and* the counts, never the ratio alone.
+
+At D=1024 every configuration reports 0 BRAM (arrays stay in registers and
+LUTRAM) and LUT savings are larger: 20.9% / 18.9% / 22.1%.
+
+The block-RAM saving exists only once arrays spill, which is why both D values
+were swept.
 
 **Reading LUT counts across D is misleading on its own.** `image` at D=10240
 uses *fewer* LUTs (4032) than at D=1024 (4386), because the arrays moved out of
@@ -155,25 +182,48 @@ wrong for free.
 
 ## 5. Tier B results
 
-### 5.1 One bit is nearly free at realistic load
+### 5.1 Four bits holds 8× the library at no measurable recall cost
 
-| P bundled | 1-bit AUC | full-precision AUC | gap |
-|---:|---:|---:|---:|
-| 50 | 1.0000 | 1.0000 | **0** |
-| 500 | 0.9933 | 0.9993 | −0.6% |
-| 2000 | 0.8812 | 0.9321 | −5.5% |
+Mean over 5 seeds, D=10240:
 
-Joined with the capacity crossover's storage axis at D=10240:
+| P | 1-bit AUC | int32 AUC | 1-bit TPR | int32 TPR |
+|---:|---:|---:|---:|---:|
+| 50 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| 500 | 0.9942 ± 0.0011 | 0.9993 ± 0.0004 | 0.9708 | 0.9972 |
+| 2000 | 0.8915 ± 0.0056 | 0.9389 ± 0.0040 | 0.5500 | 0.6924 |
 
-| P | best width | storage / reference | AUC | vs full precision |
-|---:|---|---:|---:|---:|
-| 50 | 1 bit | 1.25 KB | 1.0000 | 0 |
-| 500 | 1 bit | 1.25 KB | 0.9933 | −0.6% |
-| 2000 | 4 bit, `scale` | ~5 KB | 0.9300 | −0.2% |
-| — | 32 bit | 40 KB | — | baseline |
+**AUC saturates, so the trade must be read on TPR.** Every non-`wrap` row at
+P=50 is 1.0000, and at P=500 the whole span between 1 bit and int32 is 0.005
+AUC. `TPR@FPR≤0.05` — recall at the operating point a retrieval system is
+actually judged at — keeps resolving where AUC has run out of room, and it
+reverses the conclusion:
 
-**32× less storage for no measurable accuracy loss at light load; 8× for 0.2% at
-heavy load.** This strengthens the capacity-crossover result rather than
+| P | width | references on one U280 | gain | AUC vs int32 | **TPR vs int32** |
+|---:|---|---:|---:|---:|---:|
+| 500 | 1 bit | 7,118 | 32× | −0.0051 | **−0.0264** |
+| 500 | **4 bit `scale`** | **1,779** | **8×** | −0.0002 | **+0.0004** |
+| 2000 | 1 bit | 7,118 | 32× | −0.0474 | **−0.1424** |
+| 2000 | **4 bit `scale`** | **1,779** | **8×** | −0.0021 | **−0.0048** |
+| — | int32 | 222 | 1× | baseline | baseline |
+
+On AUC a 1-bit library looks nearly free. On recall it costs **2.6 points at
+P=500 and 14 points at P=2000** — at heavy load it misses a seventh of the true
+matches it should find. Four bits does not: it matches int32's recall at P=500
+(+0.0004, inside noise) and costs half a point at P=2000, while holding **8×**
+the library.
+
+> **The claim: 8× the reference library at no measurable recall cost, at both
+> loads.** Smaller multiplier than AUC suggested, and it survives the stricter
+> metric.
+
+Two things this exposed. At P=2000 **int32 itself only reaches TPR 0.6924** —
+the reference is overloaded, and an AUC of 0.9389 concealed that a third of true
+matches are missed at 5% FPR. And **P=50 is saturated on both metrics** (every
+row 1.0000); it carries no claim and exists only to show that `wrap` breaks.
+
+`DSE/join_precision_pareto.py` selects on TPR for exactly this reason — choosing
+on AUC would have recommended the 1-bit configuration that the stricter metric
+rejects. This strengthens the capacity-crossover result rather than
 qualifying it — binary is not a compromise, it is the right default until the
 reference is heavily loaded.
 
@@ -181,12 +231,18 @@ reference is heavily loaded.
 
 Neither sane policy dominates:
 
+AUC, mean ± sd over 5 seeds:
+
 | P | bits | `wrap` | `saturate` | `scale` |
 |---:|---:|---:|---:|---:|
-| 500 | 2 | 0.4931 | **0.9911** | 0.8884 |
-| 500 | 4 | 0.5003 | 0.9962 | **0.9992** |
-| 2000 | 2 | 0.4927 | **0.8701** | 0.7870 |
-| 2000 | 4 | 0.5025 | 0.8938 | **0.9300** |
+| 500 | 2 | 0.4896 ± 0.0061 | **0.9920 ± 0.0014** | 0.9332 ± 0.0249 |
+| 500 | 4 | 0.5047 ± 0.0042 | 0.9968 ± 0.0008 | **0.9991 ± 0.0004** |
+| 2000 | 2 | 0.4952 ± 0.0078 | **0.8797 ± 0.0052** | 0.7923 ± 0.0162 |
+| 2000 | 4 | 0.5040 ± 0.0057 | 0.9011 ± 0.0046 | **0.9369 ± 0.0043** |
+
+The crossover is many standard deviations wide, so it is not a sampling
+artifact. `scale` at 2 bits additionally carries sd 0.0249 — above the 0.02
+instability flag — so there it is not merely worse, it is erratic.
 
 The crossover has a clean mechanism. At 2 bits `scale` divides by peak/1, so
 nearly everything rounds to zero — signal mean collapses to 25.2 against
@@ -259,14 +315,16 @@ bits). The width derivation could not have been applied safely without fixing
 | right-sized == 32-bit, bit-identical | **measured** — csim, 40 random trials × 3 applications |
 | one bit short mispredicts | **measured** — csim, deterministic worst case |
 | majority-vote fix | **measured** — csim regression, all three applications |
-| Tier B AUC | software model, bit-accurate to `ap_int` wrap semantics |
-| storage per reference | from the capacity crossover, Vivado-confirmed |
+| Tier A BRAM, `wide` vs `right`, D=10240 | **measured** — Vivado synth + place, 6 points |
+| Tier B AUC | software model, bit-accurate to `ap_int` wrap semantics; 5 seeds |
+| storage per reference | from the capacity crossover, Vivado-confirmed at the int32 boundary to 0.28% |
+| references that fit on a U280 | modelled from measured blocks/reference |
 
-**Open risk.** Tier A is pre-place-and-route. In the capacity study csynth
-under-reported BRAM by roughly 32× on a large array, and BRAM is the headline
-number here — so the 37–43% figure is the one most exposed. A Vivado run on the
-`wide` and `right` points of one application would settle it, using the existing
-`scripts/confirm_capacity_cliff.tcl` machinery.
+**Remaining risk.** Tier A's LUT and FF numbers, and the D=1024 rows, are still
+csynth. The BRAM headline — the number that was exposed — is now
+post-implementation. Tier B remains a software model on random hypervectors, not
+BioHD's protein data; the claim is about the capacity property, not an
+end-to-end biology result, and must be worded that way.
 
 ---
 
@@ -274,29 +332,36 @@ number here — so the 37–43% figure is the one most exposed. A Vivado run on 
 
 | claim | evidence | strength |
 |---|---|---|
-| per-stage sizing saves 37–43% BRAM vs one global width | `precision_sweep.csv`, 3 applications | strong; csynth only |
+| per-stage sizing saves **60–80% BRAM** vs one global width | `precision_pnr.csv`, Vivado synth + place, 3 applications | **strong; post-implementation** |
 | …at identical latency and bit-identical output | csim + sweep | strong |
 | the boundary is a cliff, not a knee (0.07–0.14%) | `precision_sweep.csv` + csim case 2 | **strongest single result** |
 | the accumulator holds the area, the score holds the risk | attribution table §4.2 | strong |
-| 1 bit costs ≤0.6% AUC at P≤500, for 32× storage | `precision_accuracy.csv` | strong; single seed |
-| overflow policy matters more than width | §5.2 | strong; single seed |
+| **4 bits holds 8× the library at no measurable recall cost** | `precision_pareto.csv`, 5 seeds, TPR@FPR≤0.05 | **strong** |
+| 1 bit holds 32× but costs 2.6–14 points of recall | same | strong; do NOT quote the AUC version |
+| overflow policy matters more than width | §5.2 | strong; 5 seeds |
+| csynth's BRAM estimate is unreliable in both directions | §4.1 + capacity study | strong; two independent instances |
 | per-primitive measurement catches real defects | §6 | one instance, but concrete |
 
 ---
 
 ## 9. Open items
 
-**Single seed.** `SEED = 0`, no error bars. Differences like 0.9911 vs 0.9884
-are not defensible from one run. Three to five seeds is minutes of compute.
+**~~Single seed.~~ DONE.** `phase7` now runs 5 seeds and reports mean ± sd, with
+an `unstable` flag on any configuration whose seed-to-seed spread exceeds 0.02
+AUC. Per-seed data is kept in `precision_accuracy_raw.csv` so the aggregate can
+be re-derived.
 
-**AUC is generous.** It compresses differences, and 0.88 can still be unusable
-for retrieval. `search.py` already computes TPR at low FPR — reporting
-`TPR@FPR≤0.05` beside AUC is the operationally honest number and is already
-written.
+**~~AUC is generous.~~ DONE.** `TPR@FPR≤0.05` is now reported beside AUC. AUC
+integrates over every operating point, which flatters a configuration that is
+useless at the only threshold anyone would deploy; for retrieval, TPR at low FPR
+is the number that decides usability.
 
-**The `scale` factor is data-derived.** In hardware it is fixed at design time,
-so the current `scale` numbers are a mild best case. Either fix the scale or say
-so.
+**The `scale` factor is data-derived, and this now matters more.** The headline
+configuration is 4-bit `scale`, and its scale factor is chosen from the observed
+peak. In hardware it is a design-time constant, so a deployment whose data
+shifts would do worse than these numbers. This is the single most load-bearing
+caveat left in Tier B: either fix the scale at design time and re-measure, or
+state the assumption explicitly wherever the 8× claim appears.
 
 **The two tiers are not yet combined.** Tier B models a full-precision query and
 an unbounded accumulator — the stage Tier A bounds. The real design has both,
@@ -311,7 +376,10 @@ Grouped bars, one group per application at D=10240, bars = `wide`, `right`,
 `short`, height = BRAM18K. Annotate `short` with "numerically wrong". The story
 is that `right` is much shorter than `wide` and `short` is indistinguishable
 from `right`.
-Source: `precision_sweep.csv` → `app`, `config`, `BRAM18K`, filter `D == 10240`.
+Source: **`precision_pnr.csv`** → `app`, `config`, `BRAM18K_pnr` for `wide` and
+`right` (post-implementation). `short` was not put through Vivado, so take it
+from `precision_sweep.csv` and say so in the caption, or drop it from this
+figure and keep the cliff argument in the text where the csim evidence lives.
 
 **Figure B — attribution.**
 Stacked horizontal bars, one per (application, D): accumulator contribution and
@@ -327,12 +395,14 @@ converge. Already generated at
 `BioHD/experiments/output/phase7_precision_accuracy.png`.
 Source: `precision_accuracy.csv` → `P`, `bits`, `policy`, `auc`, `overflowed`.
 
-**Figure D — accuracy vs area Pareto (the one that ties both studies).**
-x = storage per reference in KB (log), y = AUC, one series per P, points at
-1/4/8/32 bits, best policy at each width. Mark the 32-bit point and draw the
-horizontal distance to the 1-bit point — that gap is the headline.
-Source: `precision_accuracy.csv` joined to `capacity_sweep.csv` on
-bits-per-element. **Not yet written** — this is B3.
+**Figure D — accuracy vs capacity (the one that ties both studies).**
+x = **references that fit on one U280** (log), y = AUC, one series per P, points
+at 1/2/4/8/16/32 bits, best policy at each width, error bars from `auc_sd`. Mark
+the int32 point and draw the horizontal distance to the 1-bit point — that gap
+is the headline. Using library size rather than KB makes the axis a *capability*
+instead of an implementation detail.
+Source: **`precision_pareto.csv`** → `K_max_on_U280`, `auc`, `auc_sd`, `P`.
+Produced by `DSE/join_precision_pareto.py`.
 
 **Table 1 — Tier A, five configurations × three applications × two D.**
 Source: `precision_sweep.csv` directly. Columns: application, D, config, latency,
@@ -357,11 +427,23 @@ that one sentence does not say better.
 | result 2: attribution | accumulator holds the area, score holds the risk | §4.2, Figure B |
 | result 3: the cliff | 0.14% cheaper and wrong | §4.3 |
 | result 4: accuracy | 1 bit ≈ free; policy > width | §5, Figure C |
-| synthesis | the accuracy/area Pareto | Figure D |
+| synthesis | accuracy vs library capacity | Figure D, §5.1 |
 | methodology note | per-primitive measurement caught a real defect | §6, **one sentence, no numbers** |
 
 The defect belongs in the methodology argument, not the results. It justifies why
 the measurement is worth doing; it is not itself a contribution.
+
+---
+
+## 11b. A correction to the capacity figure
+
+`docs/capacity_crossover_figure.html` stated the binary cliff as **K = 4,449**
+and labelled the span **20×**, while `docs/capacity_crossover_results.md` states
+**K ≈ 7,116** and **exactly 32×**. Extrapolating the measured points
+(580 blocks at K=1024, i.e. 0.5664 blocks/reference) gives **4032 / 0.5664 =
+7,119**, and 7,119 / 222 = 32.0 — consistent with the 1:8:32 precision ratio,
+which 4,449 is not. The figure was wrong; it has been corrected to ~7,119 and
+32×. The Pareto in §5.1 independently arrives at 7,118 from the same data.
 
 ---
 
@@ -376,11 +458,21 @@ nohup vitis_hls -f scripts/sweep_precision.tcl > precision.log 2>&1 &
 python3 DSE/collect_precision.py                 # -> precision_sweep.csv
 ```
 
+```bash
+# Tier A post-place-and-route confirmation -- yangzi, ~1 hour
+nohup bash -c 'cd ~/fpga-hdc-hls && source /tools/Xilinx/Vitis/2023.1/settings64.sh && for p in image:image_classification_top genome:genome_sequence_search_top ts:time_series_classification_top; do app=${p%%:*}; top=${p##*:}; for cfg in wide right; do echo "########## $app $cfg ##########"; HDC_CLIFF_PROJ=proj_prec_${app}_d10240_${cfg} HDC_CLIFF_TOP=$top vivado -mode batch -source scripts/confirm_capacity_cliff.tcl; done; done' > prec_pnr.log 2>&1 &
+python3 DSE/collect_precision_pnr.py             # -> precision_pnr.csv
+```
+
 ```powershell
 # Tier B -- laptop, needs the BioHD venv
 cd C:\USC\fpga-hdc-hls\BioHD
 .\.venv\Scripts\python.exe quantize.py           # GATE -- must print ALL PASS
 .\.venv\Scripts\python.exe experiments\phase7_precision_accuracy.py
+
+# the Pareto join -- no synthesis, seconds
+cd C:\USC\fpga-hdc-hls
+python DSE\join_precision_pareto.py              # -> precision_pareto.csv
 ```
 
 Overridable: `HDC_PREC_D` (D list), `HDC_PART` / `HDC_PERIOD` / `HDC_TAG`

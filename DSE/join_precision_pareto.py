@@ -205,11 +205,21 @@ def main():
     print("=" * 96)
     for P in sorted({r["P"] for r in rows}):
         grp = [r for r in rows if r["P"] == P]
-        full = max(r["auc"] for r in grp)
-        ok = [r for r in grp if r["auc"] >= full - 0.01]
+
+        # Select on TPR, not AUC. AUC saturates -- at P=500 a 1-bit reference is
+        # within 0.005 AUC of int32 and looks free, while costing 0.026 of TPR,
+        # i.e. 2.6 points of recall at the operating point anyone would deploy.
+        # Choosing on AUC would recommend a configuration the stricter metric
+        # rejects, which is precisely the failure the TPR column exists to catch.
+        have_tpr = all(r.get("tpr_mean") is not None for r in grp)
+        key = "tpr_mean" if have_tpr else "auc"
+        full = max(r[key] for r in grp)
+        ok = [r for r in grp if r[key] >= full - 0.01]
         if not ok:
             continue
         best = min(ok, key=lambda r: (r["bits"], r["policy"] or ""))
+        if have_tpr:
+            print(" [selected on TPR@FPR<=0.05, within 0.01 of the best]")
         b32 = ref.get((P, best["policy"])) or ref.get((P, "scale"))
         if not b32:
             continue
