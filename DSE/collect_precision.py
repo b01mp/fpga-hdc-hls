@@ -123,7 +123,7 @@ def main():
         b = base.get((r["app"], r["D"]))
         if not b:
             continue
-        for res in ("LUT", "FF"):
+        for res in ("LUT", "FF", "BRAM18K"):
             if r.get(res) is not None and b.get(res):
                 r[res + "_vs_wide"] = round(100.0 * (b[res] - r[res]) / float(b[res]), 2)
         if r.get("latency") and b.get("latency"):
@@ -134,7 +134,7 @@ def main():
                              if r["config"] in CONFIG_ORDER else 99))
 
     cols = ["app", "D", "config", "latency", "latency_ratio", "LUT", "LUT_vs_wide",
-            "FF", "FF_vs_wide", "DSP", "BRAM18K", "URAM", "status"]
+            "FF", "FF_vs_wide", "BRAM18K", "BRAM18K_vs_wide", "DSP", "URAM", "status"]
     if not os.path.isdir(SR):
         os.makedirs(SR)
     out_csv = os.path.join(SR, "precision_sweep.csv")
@@ -149,7 +149,7 @@ def main():
     print(" PER-STAGE PRECISION -- what independent stage widths bought")
     print("=" * 84)
 
-    fmt = "{:<10}{:>4}{:>7}{:>11}{:>9}{:>9}{:>9}{:>9}"
+    fmt = "{:<10}{:>7}{:>9}{:>10}{:>9}{:>9}{:>9}{:>7}{:>9}"
     for app in ("image", "genome", "ts"):
         for d in sorted({r["D"] for r in rows if r["app"] == app}):
             grp = [r for r in rows if r["app"] == app and r["D"] == d]
@@ -157,13 +157,15 @@ def main():
                 continue
             print("\n---- {}  D={}  (score rule = {} bits) ----".format(
                 app, d, bits_for(d) + 1))
-            print(fmt.format("config", "D", "lat", "LUT", "LUT-%", "FF", "FF-%", "BRAM"))
-            print("-" * 68)
+            print(fmt.format("config", "lat", "LUT", "LUT-%", "FF", "FF-%",
+                             "BRAM", "BRAM-%", "wrong?"))
+            print("-" * 72)
             for r in grp:
                 print(fmt.format(
-                    r["config"], r["D"], cell(r, "latency"), cell(r, "LUT"),
+                    r["config"], cell(r, "latency"), cell(r, "LUT"),
                     cell(r, "LUT_vs_wide"), cell(r, "FF"), cell(r, "FF_vs_wide"),
-                    cell(r, "BRAM18K")))
+                    cell(r, "BRAM18K"), cell(r, "BRAM18K_vs_wide"),
+                    "WRONG" if r["config"] == "short" else ""))
 
     # ---- attribution: does acc_only + sim_only account for right? ----
     print("\n" + "=" * 84)

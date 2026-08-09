@@ -1,0 +1,134 @@
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #8a8985;
+  --grid: #e6e5e1;
+  --p1: #86b6ef;
+  --p8: #2a78d6;
+  --p32: #104281;
+  --stream: #eb6834;
+  --limit: #b3b2ad;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: var(--text-primary);
+  padding: 1rem 0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #8a8985; --grid: #333330;
+    --p1: #b7d3f6; --p8: #5598e7; --p32: #184f95; --stream: #d95926; --limit: #55544f;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+  --text-muted: #8a8985; --grid: #333330;
+  --p1: #b7d3f6; --p8: #5598e7; --p32: #184f95; --stream: #d95926; --limit: #55544f;
+}
+.viz-root h2 { font-size: 18px; font-weight: 500; margin: 0 0 .25rem; }
+.viz-root .sub { font-size: 14px; color: var(--text-secondary); margin: 0 0 1rem; line-height: 1.6; }
+.viz-root .lg { display: flex; flex-wrap: wrap; gap: 1.25rem; font-size: 13px; color: var(--text-secondary); margin-bottom: .5rem; }
+.viz-root .lg span { display: inline-flex; align-items: center; gap: .4rem; }
+.viz-root .sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.viz-root .note { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-top: .75rem; }
+.viz-root .t { font-size: 12px; fill: var(--text-secondary); }
+.viz-root .tm { font-size: 11px; fill: var(--text-muted); }
+.viz-root .dl { font-size: 12px; font-weight: 500; }
+.viz-root table { border-collapse: collapse; font-size: 13px; margin-top: 1rem; width: 100%; }
+.viz-root th, .viz-root td { text-align: right; padding: .35rem .6rem; border-bottom: 1px solid var(--grid); }
+.viz-root th:first-child, .viz-root td:first-child { text-align: left; }
+.viz-root th { color: var(--text-secondary); font-weight: 500; }
+</style>
+
+<div class="viz-root">
+<h2>On-chip memory is the limit prior work never crossed</h2>
+<p class="sub">On-chip block RAM needed to hold the reference library, versus library size. Precision alone moves the wall by 32&times;. The streaming design holds 45 blocks regardless.</p>
+
+<div class="lg">
+  <span><i class="sw" style="background:var(--p1)"></i>binary, 1-bit</span>
+  <span><i class="sw" style="background:var(--p8)"></i>int8</span>
+  <span><i class="sw" style="background:var(--p32)"></i>int32</span>
+  <span><i class="sw" style="background:var(--stream)"></i>streaming (ours)</span>
+</div>
+
+<svg viewBox="0 0 760 470" xmlns="http://www.w3.org/2000/svg" role="img" style="width:100%;height:auto">
+<title>Block RAM required versus reference library size, three precisions plus the streaming design</title>
+<desc>On-chip requirement rises with library size and crosses the U280 limit of 4032 blocks at K=222 for int32, K=890 for int8, and K=4449 for binary. The streaming design stays flat at 45 blocks.</desc>
+
+<line x1="95" y1="321.5" x2="690" y2="321.5" stroke="var(--grid)" stroke-width="1"/>
+<line x1="95" y1="209.1" x2="690" y2="209.1" stroke="var(--grid)" stroke-width="1"/>
+<line x1="95" y1="96.7" x2="690" y2="96.7" stroke="var(--grid)" stroke-width="1"/>
+<text class="tm" x="88" y="325" text-anchor="end">100</text>
+<text class="tm" x="88" y="213" text-anchor="end">1,000</text>
+<text class="tm" x="88" y="100" text-anchor="end">10,000</text>
+
+<line x1="95" y1="400" x2="690" y2="400" stroke="var(--grid)" stroke-width="1.5"/>
+<text class="tm" x="95" y="418" text-anchor="middle">32</text>
+<text class="tm" x="214" y="418" text-anchor="middle">64</text>
+<text class="tm" x="333" y="418" text-anchor="middle">128</text>
+<text class="tm" x="452" y="418" text-anchor="middle">256</text>
+<text class="tm" x="571" y="418" text-anchor="middle">512</text>
+<text class="tm" x="690" y="418" text-anchor="middle">1024</text>
+<text class="t" x="392" y="442" text-anchor="middle">reference library size K (hypervectors, D = 10,240)</text>
+<text class="t" x="20" y="226" text-anchor="middle" transform="rotate(-90 20 226)">block RAM required (18 Kb blocks)</text>
+
+<rect x="95" y="52" width="595" height="89" fill="var(--limit)" opacity="0.10"/>
+<line x1="95" y1="141" x2="690" y2="141" stroke="var(--limit)" stroke-width="2" stroke-dasharray="6 4"/>
+<text class="t" x="690" y="134" text-anchor="end" style="fill:var(--text-secondary)">U280 limit — 4,032 blocks</text>
+<text class="tm" x="103" y="70">cannot be built</text>
+
+<polyline points="95,235.7 214,201.8 333,168 452,134.2 571,100.4 690,66.5" fill="none" stroke="var(--p32)" stroke-width="2"/>
+<polyline points="95,303.3 214,269.5 333,235.7 452,201.8 571,168 690,134.2" fill="none" stroke="var(--p8)" stroke-width="2"/>
+<polyline points="95,381.9 214,348 333,328.3 452,303.3 571,269.5 690,235.7" fill="none" stroke="var(--p1)" stroke-width="2"/>
+<polyline points="95,360.4 690,360.4" fill="none" stroke="var(--stream)" stroke-width="2.5"/>
+
+<circle cx="95" cy="235.7" r="4" fill="var(--p32)" stroke="var(--surface-1)" stroke-width="2"><title>int32, K=32: 580 blocks</title></circle>
+<circle cx="214" cy="201.8" r="4" fill="var(--p32)" stroke="var(--surface-1)" stroke-width="2"><title>int32, K=64: 1,160 blocks</title></circle>
+<circle cx="333" cy="168" r="4" fill="var(--p32)" stroke="var(--surface-1)" stroke-width="2"><title>int32, K=128: 2,320 blocks — Vivado placed it (58.85%)</title></circle>
+<circle cx="452" cy="134.2" r="4" fill="var(--p32)" stroke="var(--surface-1)" stroke-width="2"><title>int32, K=256: 4,640 blocks — Vivado refused (115.40%)</title></circle>
+<circle cx="571" cy="100.4" r="4" fill="var(--p32)" stroke="var(--surface-1)" stroke-width="2"><title>int32, K=512: 9,280 blocks</title></circle>
+<circle cx="690" cy="66.5" r="4" fill="var(--p32)" stroke="var(--surface-1)" stroke-width="2"><title>int32, K=1024: 18,560 blocks</title></circle>
+
+<circle cx="95" cy="303.3" r="4" fill="var(--p8)" stroke="var(--surface-1)" stroke-width="2"><title>int8, K=32: 145 blocks</title></circle>
+<circle cx="214" cy="269.5" r="4" fill="var(--p8)" stroke="var(--surface-1)" stroke-width="2"><title>int8, K=64: 290 blocks</title></circle>
+<circle cx="333" cy="235.7" r="4" fill="var(--p8)" stroke="var(--surface-1)" stroke-width="2"><title>int8, K=128: 580 blocks</title></circle>
+<circle cx="452" cy="201.8" r="4" fill="var(--p8)" stroke="var(--surface-1)" stroke-width="2"><title>int8, K=256: 1,160 blocks</title></circle>
+<circle cx="571" cy="168" r="4" fill="var(--p8)" stroke="var(--surface-1)" stroke-width="2"><title>int8, K=512: 2,320 blocks</title></circle>
+<circle cx="690" cy="134.2" r="4" fill="var(--p8)" stroke="var(--surface-1)" stroke-width="2"><title>int8, K=1024: 4,640 blocks — exceeds the device</title></circle>
+
+<circle cx="95" cy="381.9" r="4" fill="var(--p1)" stroke="var(--surface-1)" stroke-width="2"><title>binary, K=32: 29 blocks</title></circle>
+<circle cx="214" cy="348" r="4" fill="var(--p1)" stroke="var(--surface-1)" stroke-width="2"><title>binary, K=64: 58 blocks</title></circle>
+<circle cx="333" cy="328.3" r="4" fill="var(--p1)" stroke="var(--surface-1)" stroke-width="2"><title>binary, K=128: 87 blocks</title></circle>
+<circle cx="452" cy="303.3" r="4" fill="var(--p1)" stroke="var(--surface-1)" stroke-width="2"><title>binary, K=256: 145 blocks</title></circle>
+<circle cx="571" cy="269.5" r="4" fill="var(--p1)" stroke="var(--surface-1)" stroke-width="2"><title>binary, K=512: 290 blocks</title></circle>
+<circle cx="690" cy="235.7" r="4" fill="var(--p1)" stroke="var(--surface-1)" stroke-width="2"><title>binary, K=1024: 580 blocks</title></circle>
+
+<circle cx="427.9" cy="141" r="6" fill="none" stroke="var(--p32)" stroke-width="2.5"/>
+<circle cx="665.9" cy="141" r="6" fill="none" stroke="var(--p8)" stroke-width="2.5"/>
+<text class="dl" x="427.9" y="160" text-anchor="middle" style="fill:var(--p32)">K = 222</text>
+<text class="dl" x="659" y="160" text-anchor="end" style="fill:var(--p8)">K = 890</text>
+
+<text class="dl" x="684" y="60" text-anchor="end" style="fill:var(--p32)">int32</text>
+<text class="dl" x="684" y="128" text-anchor="end" style="fill:var(--p8)">int8</text>
+<text class="dl" x="684" y="229" text-anchor="end" style="fill:var(--p1)">binary — crosses at K = 4,449</text>
+<text class="dl" x="330" y="354" text-anchor="middle" style="fill:var(--stream)">streaming — 45 blocks, flat</text>
+</svg>
+
+<p class="note"><strong>Reading it.</strong> Each on-chip line rises with library size and eventually crosses the device limit, after which the design cannot be built. Which K that happens at is set entirely by precision — 222 for int32, 890 for int8, 4,449 for binary, a 32&times; span for the same application and the same source code. The streaming design's on-chip cost does not depend on library size at all.</p>
+
+<p class="note"><strong>Two points are tool-confirmed.</strong> At K = 128 (2,320 blocks predicted) Vivado synthesised and <em>placed</em> the design at 58.85% block RAM. At K = 256 (4,640 predicted) Vivado reported 115.40% and <em>refused</em> placement with a resource over-utilisation DRC error. The model predicted both within 1.4 percentage points.</p>
+
+<table>
+<tr><th>Precision</th><th>Bytes / reference</th><th>Cliff (K)</th><th>vs int32</th></tr>
+<tr><td>int32</td><td>40 KB</td><td>222</td><td>1&times;</td></tr>
+<tr><td>int8</td><td>10 KB</td><td>890</td><td>4&times;</td></tr>
+<tr><td>binary</td><td>1.25 KB</td><td>4,449</td><td>20&times;</td></tr>
+<tr><td>streaming</td><td>&mdash;</td><td>no limit</td><td>&mdash;</td></tr>
+</table>
+
+<p class="note"><strong>The cost.</strong> Streaming runs 1.33&times; slower than on-chip wherever both exist — a 512-bit port at 300 MHz demands 19.2 GB/s while one U280 HBM2 pseudo-channel delivers 14.4. That is the price of removing the ceiling: <strong>unbounded library capacity for 33% latency.</strong> Prior work does not get to make that trade, because on-chip is its only option.</p>
+</div>
