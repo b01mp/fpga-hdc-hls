@@ -111,10 +111,23 @@ int main(int argc, char **argv) {
     if (is_emu) { iters = 1; printf("[emulation mode: %s -- tiny grid]\n", emu); }
     auto grids = is_emu ? emu_grids() : full_grids();
 
-    printf("device %s\nxclbin %s\nkernel %s  CP=%d  design=%s\n",
-           bdf.c_str(), xclbin.c_str(), kname.c_str(), CP, design.c_str());
+    // In emulation there is no physical card: XRT presents one virtual device
+    // at index 0, described by emconfig.json, and a BDF string does not
+    // resolve. On hardware the index is a coin flip between the U200 and the
+    // U280 in this machine, so there the BDF is the only safe selector.
+    auto open_device = [&]() {
+        if (is_emu) {
+            printf("device (emulated, index 0)\n");
+            return xrt::device(static_cast<unsigned int>(0));
+        }
+        printf("device %s\n", bdf.c_str());
+        return xrt::device(bdf);
+    };
 
-    auto device = xrt::device(bdf);
+    printf("xclbin %s\nkernel %s  CP=%d  design=%s\n",
+           xclbin.c_str(), kname.c_str(), CP, design.c_str());
+
+    auto device = open_device();
     auto uuid   = device.load_xclbin(xclbin);
     auto krnl   = xrt::kernel(device, uuid, kname);
 
